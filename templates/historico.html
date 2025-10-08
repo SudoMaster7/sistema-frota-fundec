@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Histórico de Viagens{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h2 class="text-center mb-0">Histórico de Viagens Finalizadas</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr>
+                        <th>Motorista</th>
+                        <th>Veículo</th>
+                        <th>Km Inicial</th>
+                        <th>Km Final</th>
+                        <th>Saída</th>
+                        <th>Chegada</th>
+                        <th>Destinos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in viagens|reverse %}
+                    <tr>
+                        <td>{{ v.Motorista }}</td>
+                        <td>{{ v.PlacaVeiculo }}</td>
+                        <td>{{ v.KmInicial }}</td>
+                        <td>{{ v.KmFinal }}</td>
+                        <td>{{ v.DataSaida }} {{ v.HoraSaida }}</td>
+                        <td>{{ v.DataChegada }} {{ v.HoraChegada }}</td>
+                        <td>{{ v.Destinos }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

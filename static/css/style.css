@@ -1,0 +1,27 @@
+
+/* Define uma nova paleta de cores para o Bootstrap */
+:root {
+    --bs-primary: #005f73;
+    --bs-primary-rgb: 0, 95, 115;
+    --bs-link-color: #005f73;
+    --bs-link-hover-color: #0a9396;
+}
+
+body {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Efeito de hover suave nas tabelas */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+    cursor: pointer;
+}
+
+/* Estilos específicos para o modo escuro (Bootstrap cuidará da maioria) */
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+}
+
+.navbar-brand {
+    font-weight: bold;
+}

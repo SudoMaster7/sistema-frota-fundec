@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Cronograma{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+        <h2 class="text-center mb-0">Cronograma - Veículos em Rota</h2>
+    </div>
+    <div class="card-body">
+        {% if viagens %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Motorista</th>
+                        <th>Veículo (Placa)</th>
+                        <th>Destinos</th>
+                        <th>Data Saída</th>
+                        <th>Hora Saída</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in viagens %}
+                    <tr class="table-warning">
+                        <td>{{ v.Motorista }}</td>
+                        <td>{{ v.PlacaVeiculo }}</td>
+                        <td>{{ v.Destinos }}</td>
+                        <td>{{ v.DataSaida }}</td>
+                        <td>{{ v.HoraSaida }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success text-center" role="alert">
+            <h4>Nenhum veículo em rota no momento.</h4>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

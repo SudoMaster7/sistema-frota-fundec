@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Saída{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h3 class="text-center mb-0">Registrar Saída de Veículo</h3>
+            </div>
+            <div class="card-body">
+                <form action="/registrar-saida" method="post">
+                    
+                    <div class="mb-3">
+                        <label for="motorista" class="form-label">Motorista:</label>
+                        
+                        {% if current_user.role == 'admin' %}
+                            <select class="form-select" id="motorista" name="motorista" required>
+                                <option value="" disabled selected>Selecione o motorista</option>
+                                {% for m in motoristas %}
+                                <option value="{{ m.Nome }}">{{ m.Nome }}</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <input type="text" class="form-control" id="motorista" name="motorista" value="{{ current_user.id }}" readonly>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="veiculo" class="form-label">Veículo (Disponíveis):</label>
+                        <select class="form-select" id="veiculo" name="veiculo" required>
+                            <option value="" disabled selected>Selecione a placa</option>
+                            {% for v in veiculos %}
+                            <option value="{{ v.Placa }}">{{ v.Modelo }} - {{ v.Placa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="km_inicial" class="form-label">Quilometragem Inicial:</label>
+                        <input type="number" class="form-control" id="km_inicial" name="km_inicial" placeholder="Ex: 85420" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="destinos" class="form-label">Unidades / Destinos:</label>
+                        <textarea class="form-control" id="destinos" name="destinos" rows="3" placeholder="Liste as unidades de parada" required></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Registrar Saída</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

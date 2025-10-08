@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Chegada{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="text-center mb-0">Registrar Chegada de Veículo</h3>
+            </div>
+            <div class="card-body">
+                <form action="/registrar-chegada" method="post">
+                    <div class="mb-3">
+                        <label for="veiculo" class="form-label">Veículo (Em Uso):</label>
+                        <select class="form-select" id="veiculo" name="veiculo" required>
+                            <option value="" disabled selected>Selecione o veículo que retornou</option>
+                            {% for v in veiculos_em_uso %}
+                            <option value="{{ v.Placa }}">{{ v.Modelo }} - {{ v.Placa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="km_final" class="form-label">Quilometragem Final:</label>
+                        <input type="number" class="form-control" id="km_final" name="km_final" placeholder="Ex: 85650" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">Registrar Chegada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

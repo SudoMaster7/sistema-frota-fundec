@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Frota{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h3>Motoristas</h3></div>
+            <div class="card-body">
+                <ul class="list-group mb-3">
+                    {% for m in motoristas %}
+                    <li class="list-group-item">{{ m.Nome }} (Matrícula: {{ m.Matricula }})</li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <h4>Adicionar Novo Motorista</h4>
+                <form action="/add-motorista" method="post">
+                    <div class="mb-3"><input type="text" name="nome" class="form-control" placeholder="Nome completo" required></div>
+                    <div class="mb-3"><input type="text" name="matricula" class="form-control" placeholder="Matrícula" required></div>
+                    <button type="submit" class="btn btn-primary">Adicionar Motorista</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h3>Veículos</h3></div>
+            <div class="card-body">
+                <ul class="list-group mb-3">
+                    {% for v in veiculos %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ v.Modelo }} - {{ v.Placa }} ({{ v.Ano }})
+                        <span class="badge bg-{{ 'success' if v.Status == 'Disponível' else 'warning' }} rounded-pill">{{ v.Status }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <h4>Adicionar Novo Veículo</h4>
+                <form action="/add-veiculo" method="post">
+                    <div class="mb-3"><input type="text" name="modelo" class="form-control" placeholder="Modelo do Carro" required></div>
+                    <div class="mb-3"><input type="text" name="placa" class="form-control" placeholder="Placa" required></div>
+                    <div class="mb-3"><input type="number" name="ano" class="form-control" placeholder="Ano" required></div>
+                    <button type="submit" class="btn btn-primary">Adicionar Veículo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header"><h3>Usuários do Sistema</h3></div>
+            <div class="card-body">
+                <ul class="list-group mb-3">
+                    {% for u in usuarios %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ u.username }}
+                        <span class="badge bg-{{ 'danger' if u.role == 'admin' else 'secondary' }} rounded-pill text-capitalize">{{ u.role }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <h4>Criar Novo Usuário</h4>
+                <form action="/add-user" method="post">
+                    <div class="mb-3">
+                        <input type="text" name="username" class="form-control" placeholder="Nome de usuário" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" name="password" class="form-control" placeholder="Senha" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Permissão:</label>
+                        <select class="form-select" name="role" id="role" required>
+                            <option value="user" selected>Usuário Padrão</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success">Criar Usuário</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+# Arquivo de credenciais do Google - NUNCA ENVIE ISSO!
+credentials.json
+
+# Pasta do ambiente virtual
+venv/
+/venv/
+.venv/
+
+# Arquivos de cache do Python
+__pycache__/
+*.pyc
+
+# Script de criação de usuário (pode conter senhas em texto puro)
+create_user.py
+
+# Arquivos de ambiente (se você usar no futuro)
+.env
