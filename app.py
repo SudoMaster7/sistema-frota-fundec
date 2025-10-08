@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
+import json
 
 # --- CONFIGURAÇÃO INICIAL ---
 app = Flask(__name__)
@@ -19,22 +20,33 @@ login_manager.login_message = "Por favor, faça o login para acessar esta págin
 login_manager.login_message_category = "info"
 
 
-# --- CONEXÃO COM GOOGLE SHEETS ---
+# --- CONEXÃO COM GOOGLE SHEETS (VERSÃO PARA DEPLOY) ---
 try:
-    scope = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file'
-    ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive.file']
+
+    # Pega o conteúdo do JSON da variável de ambiente
+    creds_json_str = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+    if not creds_json_str:
+        raise ValueError("A variável de ambiente GOOGLE_CREDENTIALS_JSON não foi encontrada.")
+
+    # Converte a string JSON em um dicionário Python
+    creds_dict = json.loads(creds_json_str)
+
+    # Autoriza usando o dicionário de credenciais
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
+
     spreadsheet = client.open_by_key('1ZjTYIRF_n91JSCI1OytRYaRFiGkZX2JgoqB0eRIwu8I')
+    # ... (resto das planilhas) ...
     viagens_sheet = spreadsheet.worksheet("DB_Viagens")
     motoristas_sheet = spreadsheet.worksheet("DB_Motoristas")
     veiculos_sheet = spreadsheet.worksheet("DB_Veiculos")
     usuarios_sheet = spreadsheet.worksheet("DB_Usuarios")
     print("Conexão com Google Sheets estabelecida com sucesso.")
 except Exception as e:
-    print(f"ERRO ao conectar com Google Sheets: {e}")
+    print(f"ERRO CRÍTICO ao conectar com Google Sheets: {e}")
+    # Em um ambiente de produção, você pode querer lidar com isso de forma mais elegante
+    # Por enquanto, vamos parar a aplicação se a conexão falhar.
     exit()
 
 # --- MODELO DE USUÁRIO ---
