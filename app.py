@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_bcrypt import Bcrypt
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import pytz
 import os
 import json
 
@@ -141,7 +142,8 @@ def registrar_saida():
         placa = request.form.get('veiculo')
         km_inicial = request.form.get('km_inicial')
         destinos = request.form.get('destinos')
-        agora = datetime.now()
+        fuso_horario_sp = pytz.timezone("America/Sao_Paulo")
+        agora = datetime.now(fuso_horario_sp)
         data_saida = agora.strftime('%d/%m/%Y')
         hora_saida = agora.strftime('%H:%M:%S')
 
@@ -198,7 +200,8 @@ def registrar_chegada():
         return redirect(url_for('chegada'))
 
     # Se a validação passou, continua com o registro
-    agora = datetime.now()
+    fuso_horario_sp = pytz.timezone("America/Sao_Paulo")
+    agora = datetime.now(fuso_horario_sp)
     data_chegada = agora.strftime('%d/%m/%Y')
     hora_chegada = agora.strftime('%H:%M:%S')
 
