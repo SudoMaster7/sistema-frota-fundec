@@ -97,16 +97,52 @@ def get_all_records(sheet):
 @app.route('/')
 @login_required
 def index():
-    """Renderiza a página inicial com o formulário de saída."""
-    # ALTERAÇÃO: A lista de motoristas só é necessária se o usuário for admin.
+    """Dashboard principal com resumo das atividades."""
+    # Estatísticas gerais
+    viagens_em_rota = [v for v in get_all_records(viagens_sheet) if v['Status'] == 'Em Rota']
+    viagens_finalizadas_hoje = []
+    
+    hoje = datetime.now().strftime('%d/%m/%Y')
+    for v in get_all_records(viagens_sheet):
+        if v['Status'] == 'Finalizada' and v['DataSaida'] == hoje:
+            viagens_finalizadas_hoje.append(v)
+    
+    total_veiculos = len(veiculos_sheet.get_all_records())
+    veiculos_disponiveis = len([v for v in veiculos_sheet.get_all_records() if v['Status'] == 'Disponível'])
+    veiculos_em_uso = len([v for v in veiculos_sheet.get_all_records() if v['Status'] == 'Em Uso'])
+    
+    # Para motoristas, mostrar apenas seu próprio painel
     motoristas = []
     if current_user.role == 'admin':
         motoristas = motoristas_sheet.get_all_records()
     
-    veiculos_disponiveis = [v for v in veiculos_sheet.get_all_records() if v['Status'] == 'Disponível']
+    veiculos_disponiveis_list = [v for v in veiculos_sheet.get_all_records() if v['Status'] == 'Disponível']
     
-    # A variável current_user já é enviada automaticamente para o template pelo Flask-Login
-    return render_template('index.html', motoristas=motoristas, veiculos=veiculos_disponiveis)
+    # Calcular distância total do dia
+    distancia_total_hoje = 0
+    for v in viagens_finalizadas_hoje:
+        try:
+            km_inicial = int(v.get('KmInicial', 0))
+            km_final = int(v.get('KmFinal', 0))
+            if km_final > km_inicial:
+                distancia_total_hoje += (km_final - km_inicial)
+        except:
+            pass
+    
+    contexto = {
+        'motoristas': motoristas,
+        'veiculos': veiculos_disponiveis_list,
+        'current_user': current_user,
+        # Estatísticas
+        'viagens_em_rota': len(viagens_em_rota),
+        'viagens_hoje': len(viagens_finalizadas_hoje),
+        'total_veiculos': total_veiculos,
+        'veiculos_disponiveis': veiculos_disponiveis,
+        'veiculos_em_uso': veiculos_em_uso,
+        'distancia_hoje': distancia_total_hoje
+    }
+    
+    return render_template('index.html', **contexto)
 
 
 @app.route('/registrar-saida', methods=['POST'])
@@ -129,13 +165,37 @@ def registrar_saida():
         placa = request.form.get('veiculo')
         km_inicial = request.form.get('km_inicial')
         destinos = request.form.get('destinos')
-        agora = datetime.now()
-        data_saida = agora.strftime('%d/%m/%Y')
-        hora_saida = agora.strftime('%H:%M:%S')
+        passageiros = request.form.get('passageiros', '0')
+        observacoes = request.form.get('observacoes', '')
+        
+        # Novos campos: data e hora
+        data_saida_input = request.form.get('data_saida')
+        hora_saida_input = request.form.get('hora_saida')
+        
+        # Validar se os campos foram preenchidos
+        if not data_saida_input or not hora_saida_input:
+            flash('Data e hora são obrigatórias.', 'danger')
+            return redirect(url_for('index'))
+        
+        # Converter para o formato correto
+        data_saida = data_saida_input  # Já vem no formato DD/MM/YYYY
+        hora_saida = hora_saida_input  # Já vem no formato HH:MM
 
+        # Nova viagem com estrutura compatível com a planilha
         nova_viagem = [
-            len(get_all_records(viagens_sheet)) + 2,
-            motorista, placa, km_inicial, "", data_saida, hora_saida, "", "", destinos, "Em Rota"
+            len(get_all_records(viagens_sheet)) + 2,  # ID
+            motorista,                                  # Motorista
+            placa,                                      # PlacaVeiculo
+            km_inicial,                                 # KmInicial
+            "",                                         # KmFinal (vazio, será preenchido na chegada)
+            data_saida,                                 # DataSaida
+            hora_saida,                                 # HoraSaida
+            "",                                         # DataChegada (vazio, será preenchido na chegada)
+            "",                                         # HoraChegada (vazio, será preenchido na chegada)
+            destinos,                                   # Destinos
+            "Em Rota",                                  # Status
+            passageiros,                                # Passageiros
+            observacoes                                 # Observacoes
         ]
         viagens_sheet.append_row(nova_viagem)
         
@@ -149,6 +209,7 @@ def registrar_saida():
         flash('Saída registrada com sucesso!', 'success')
         return redirect(url_for('cronograma'))
     except Exception as e:
+        print(f"ERRO ao registrar saída: {e}")  # Log para debug
         flash(f'Erro ao registrar saída: {e}', 'danger')
         return redirect(url_for('index'))
 
@@ -210,7 +271,61 @@ def registrar_chegada():
 @login_required
 def cronograma():
     viagens_em_rota = [v for v in get_all_records(viagens_sheet) if v['Status'] == 'Em Rota']
+    
+    # Enriquecer os dados com informações adicionais
+    for viagem in viagens_em_rota:
+        # Garantir que todos os campos existem, mesmo que vazios
+        if 'Passageiros' not in viagem:
+            viagem['Passageiros'] = '0'
+        if 'Observacoes' not in viagem:
+            viagem['Observacoes'] = ''
+        if 'HoraChegada' not in viagem:
+            viagem['HoraChegada'] = ''
+    
     return render_template('cronograma.html', viagens=viagens_em_rota)
+
+@app.route('/cancelar-viagem', methods=['POST'])
+@admin_required
+def cancelar_viagem():
+    """Cancela uma viagem agendada (apenas para admin)."""
+    try:
+        viagem_id = request.form.get('viagem_id')
+        
+        if not viagem_id:
+            flash('ID da viagem não fornecido.', 'danger')
+            return redirect(url_for('cronograma'))
+        
+        # Encontrar a viagem com o ID e atualizar seu status
+        viagens_records = viagens_sheet.get_all_records()
+        viagem_encontrada = False
+        
+        for idx, viagem in enumerate(viagens_records, 2):  # Começa da linha 2
+            if str(viagem.get('ID')) == str(viagem_id):
+                # Atualizar o status para "Cancelada"
+                viagens_sheet.update_cell(idx, 11, "Cancelada")  # Coluna 11 é Status
+                viagem_encontrada = True
+                
+                # Liberar o veículo se estava em uso
+                placa = viagem.get('PlacaVeiculo')
+                if placa:
+                    try:
+                        cell = veiculos_sheet.find(placa)
+                        veiculos_sheet.update_cell(cell.row, 4, "Disponível")
+                    except:
+                        pass
+                
+                break
+        
+        if viagem_encontrada:
+            flash('Viagem cancelada com sucesso!', 'success')
+        else:
+            flash('Viagem não encontrada.', 'danger')
+        
+        return redirect(url_for('cronograma'))
+    except Exception as e:
+        print(f"ERRO ao cancelar viagem: {e}")
+        flash(f'Erro ao cancelar viagem: {e}', 'danger')
+        return redirect(url_for('cronograma'))
 
 @app.route('/historico')
 @login_required

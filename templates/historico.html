@@ -3,39 +3,262 @@
 {% block title %}Histórico de Viagens{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-header">
-        <h2 class="text-center mb-0">Histórico de Viagens Finalizadas</h2>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm">
-                <thead>
-                    <tr>
-                        <th>Motorista</th>
-                        <th>Veículo</th>
-                        <th>Km Inicial</th>
-                        <th>Km Final</th>
-                        <th>Saída</th>
-                        <th>Chegada</th>
-                        <th>Destinos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for v in viagens|reverse %}
-                    <tr>
-                        <td>{{ v.Motorista }}</td>
-                        <td>{{ v.PlacaVeiculo }}</td>
-                        <td>{{ v.KmInicial }}</td>
-                        <td>{{ v.KmFinal }}</td>
-                        <td>{{ v.DataSaida }} {{ v.HoraSaida }}</td>
-                        <td>{{ v.DataChegada }} {{ v.HoraChegada }}</td>
-                        <td>{{ v.Destinos }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<style>
+    .history-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .history-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    
+    .trip-list {
+        display: grid;
+        gap: 1.5rem;
+    }
+    
+    .trip-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .trip-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .trip-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .trip-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .trip-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .trip-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    
+    .trip-body {
+        padding: 1.5rem;
+    }
+    
+    .trip-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .detail-box {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .detail-label {
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 0.3rem;
+    }
+    
+    .detail-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .distance-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 700;
+    }
+    
+    .time-badge {
+        background: #e0e7ff;
+        color: #667eea;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 600;
+    }
+    
+    .destinations-box {
+        background: #f3f4f6;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .destinations-box h5 {
+        margin-bottom: 0.5rem;
+        color: #667eea;
+        font-weight: 700;
+    }
+    
+    .destinations-text {
+        color: #4b5563;
+        line-height: 1.6;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state p {
+        color: #9ca3af;
+        font-size: 1.1rem;
+    }
+    
+    [data-bs-theme="dark"] .trip-card {
+        background: #1e293b;
+    }
+    
+    [data-bs-theme="dark"] .trip-body {
+        background: #1e293b;
+    }
+    
+    [data-bs-theme="dark"] .detail-label {
+        color: #cbd5e1;
+    }
+    
+    [data-bs-theme="dark"] .detail-value {
+        color: #f1f5f9;
+    }
+    
+    [data-bs-theme="dark"] .destinations-box {
+        background: #334155;
+    }
+    
+    [data-bs-theme="dark"] .destinations-text {
+        color: #e2e8f0;
+    }
+    
+    @media (max-width: 768px) {
+        .trip-header {
+            grid-template-columns: 1fr;
+        }
+        
+        .trip-details {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="history-header">
+    <h1><i class="fa-solid fa-history me-2"></i>Histórico de Viagens Finalizadas</h1>
+</div>
+
+<div class="trip-list">
+    {% if viagens|length > 0 %}
+        {% for v in viagens|reverse %}
+        <div class="trip-card">
+            <div class="trip-header">
+                <div class="trip-info">
+                    <span class="trip-label"><i class="fa-solid fa-user-tie me-2"></i>Motorista</span>
+                    <span class="trip-value">{{ v.Motorista }}</span>
+                </div>
+                <div class="trip-info">
+                    <span class="trip-label"><i class="fa-solid fa-car me-2"></i>Veículo</span>
+                    <span class="trip-value" style="font-family: monospace;">{{ v.PlacaVeiculo }}</span>
+                </div>
+                <div class="trip-info">
+                    <span class="trip-label"><i class="fa-solid fa-route me-2"></i>Distância</span>
+                    <span class="trip-value">{{ (v.KmFinal|int - v.KmInicial|int)|default(0) }} km</span>
+                </div>
+            </div>
+            
+            <div class="trip-body">
+                <div class="trip-details">
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-arrow-right me-1"></i>Km Inicial</span>
+                        <span class="detail-value">{{ v.KmInicial }} km</span>
+                    </div>
+                    
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-arrow-left me-1"></i>Km Final</span>
+                        <span class="detail-value">{{ v.KmFinal }} km</span>
+                    </div>
+                    
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-hourglass-start me-1"></i>Saída</span>
+                        <span class="time-badge">{{ v.DataSaida }} {{ v.HoraSaida }}</span>
+                    </div>
+                    
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-hourglass-end me-1"></i>Chegada</span>
+                        <span class="time-badge">{{ v.DataChegada }} {{ v.HoraChegada }}</span>
+                    </div>
+                </div>
+                
+                {% if v.Destinos %}
+                <div class="destinations-box">
+                    <h5><i class="fa-solid fa-map-pin me-2"></i>Destinos</h5>
+                    <div class="destinations-text">{{ v.Destinos }}</div>
+                </div>
+                {% endif %}
+                
+                {% if v.Passageiros or v.Observacoes %}
+                <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                    {% if v.Passageiros %}
+                    <div class="destinations-box">
+                        <h5><i class="fa-solid fa-users me-2"></i>Passageiros</h5>
+                        <div class="destinations-text">{{ v.Passageiros }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if v.Observacoes %}
+                    <div class="destinations-box">
+                        <h5><i class="fa-solid fa-note-sticky me-2"></i>Observações</h5>
+                        <div class="destinations-text">{{ v.Observacoes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
         </div>
-    </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-inbox"></i>
+            <p><strong>Nenhuma viagem finalizada</strong></p>
+            <p>Não há registros de viagens finalizadas no momento.</p>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

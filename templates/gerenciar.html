@@ -3,83 +3,180 @@
 {% block title %}Gerenciar Frota{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header"><h3>Motoristas</h3></div>
-            <div class="card-body">
-                <ul class="list-group mb-3">
+<style>
+    .management-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .management-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .management-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+    }
+    
+    .list-group-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .list-group-item:hover {
+        background-color: #f9fafb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .badge {
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    
+    [data-bs-theme="dark"] .list-group-item:hover {
+        background-color: #374151;
+    }
+</style>
+
+<div class="management-header">
+    <h1><i class="fa-solid fa-wrench me-2"></i>Gerenciar Frota</h1>
+    <p>Adicione e gerencie motoristas, veículos e usuários do sistema.</p>
+</div>
+
+<div class="management-grid">
+    <!-- Motoristas -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0"><i class="fa-solid fa-user-tie me-2"></i>Motoristas</h3>
+        </div>
+        <div class="card-body">
+            <div class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                {% if motoristas %}
                     {% for m in motoristas %}
-                    <li class="list-group-item">{{ m.Nome }} (Matrícula: {{ m.Matricula }})</li>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ m.Nome }}</strong><br>
+                            <small class="text-muted">Matrícula: {{ m.Matricula }}</small>
+                        </div>
+                    </div>
                     {% endfor %}
-                </ul>
-                <hr>
-                <h4>Adicionar Novo Motorista</h4>
-                <form action="/add-motorista" method="post">
-                    <div class="mb-3"><input type="text" name="nome" class="form-control" placeholder="Nome completo" required></div>
-                    <div class="mb-3"><input type="text" name="matricula" class="form-control" placeholder="Matrícula" required></div>
-                    <button type="submit" class="btn btn-primary">Adicionar Motorista</button>
-                </form>
+                {% else %}
+                    <div class="alert alert-info mb-0">Nenhum motorista cadastrado</div>
+                {% endif %}
             </div>
+            <hr>
+            <h5>Adicionar Motorista</h5>
+            <form action="/add-motorista" method="post">
+                <div class="mb-3">
+                    <input type="text" name="nome" class="form-control" placeholder="Nome completo" required>
+                </div>
+                <div class="mb-3">
+                    <input type="text" name="matricula" class="form-control" placeholder="Matrícula" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fa-solid fa-plus me-2"></i>Adicionar Motorista
+                </button>
+            </form>
         </div>
     </div>
 
-    <div class="col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header"><h3>Veículos</h3></div>
-            <div class="card-body">
-                <ul class="list-group mb-3">
+    <!-- Veículos -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0"><i class="fa-solid fa-car me-2"></i>Veículos</h3>
+        </div>
+        <div class="card-body">
+            <div class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                {% if veiculos %}
                     {% for v in veiculos %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ v.Modelo }} - {{ v.Placa }} ({{ v.Ano }})
-                        <span class="badge bg-{{ 'success' if v.Status == 'Disponível' else 'warning' }} rounded-pill">{{ v.Status }}</span>
-                    </li>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ v.Modelo }}</strong><br>
+                            <small class="text-muted">Placa: {{ v.Placa }} | Ano: {{ v.Ano }}</small>
+                        </div>
+                        <span class="badge bg-{{ 'success' if v.Status == 'Disponível' else 'warning' }}">
+                            {{ v.Status }}
+                        </span>
+                    </div>
                     {% endfor %}
-                </ul>
-                <hr>
-                <h4>Adicionar Novo Veículo</h4>
-                <form action="/add-veiculo" method="post">
-                    <div class="mb-3"><input type="text" name="modelo" class="form-control" placeholder="Modelo do Carro" required></div>
-                    <div class="mb-3"><input type="text" name="placa" class="form-control" placeholder="Placa" required></div>
-                    <div class="mb-3"><input type="number" name="ano" class="form-control" placeholder="Ano" required></div>
-                    <button type="submit" class="btn btn-primary">Adicionar Veículo</button>
-                </form>
+                {% else %}
+                    <div class="alert alert-info mb-0">Nenhum veículo cadastrado</div>
+                {% endif %}
             </div>
+            <hr>
+            <h5>Adicionar Veículo</h5>
+            <form action="/add-veiculo" method="post">
+                <div class="mb-3">
+                    <input type="text" name="modelo" class="form-control" placeholder="Modelo do Veículo" required>
+                </div>
+                <div class="mb-3">
+                    <input type="text" name="placa" class="form-control" placeholder="Placa (ABC-1234)" required>
+                </div>
+                <div class="mb-3">
+                    <input type="number" name="ano" class="form-control" placeholder="Ano" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fa-solid fa-plus me-2"></i>Adicionar Veículo
+                </button>
+            </form>
         </div>
     </div>
 
-    <div class="col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header"><h3>Usuários do Sistema</h3></div>
-            <div class="card-body">
-                <ul class="list-group mb-3">
+    <!-- Usuários -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0"><i class="fa-solid fa-shield me-2"></i>Usuários do Sistema</h3>
+        </div>
+        <div class="card-body">
+            <div class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                {% if usuarios %}
                     {% for u in usuarios %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ u.username }}
-                        <span class="badge bg-{{ 'danger' if u.role == 'admin' else 'secondary' }} rounded-pill text-capitalize">{{ u.role }}</span>
-                    </li>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ u.username }}</strong><br>
+                            <small class="text-muted">Usuário do sistema</small>
+                        </div>
+                        <span class="badge bg-{{ 'danger' if u.role == 'admin' else 'secondary' }}">
+                            {{ u.role|upper }}
+                        </span>
+                    </div>
                     {% endfor %}
-                </ul>
-                <hr>
-                <h4>Criar Novo Usuário</h4>
-                <form action="/add-user" method="post">
-                    <div class="mb-3">
-                        <input type="text" name="username" class="form-control" placeholder="Nome de usuário" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" name="password" class="form-control" placeholder="Senha" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Permissão:</label>
-                        <select class="form-select" name="role" id="role" required>
-                            <option value="user" selected>Usuário Padrão</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-success">Criar Usuário</button>
-                </form>
+                {% else %}
+                    <div class="alert alert-info mb-0">Nenhum usuário cadastrado</div>
+                {% endif %}
             </div>
+            <hr>
+            <h5>Criar Usuário</h5>
+            <form action="/add-user" method="post">
+                <div class="mb-3">
+                    <input type="text" name="username" class="form-control" placeholder="Nome de usuário" required>
+                </div>
+                <div class="mb-3">
+                    <input type="password" name="password" class="form-control" placeholder="Senha" required>
+                </div>
+                <div class="mb-3">
+                    <select class="form-select" name="role" required>
+                        <option value="" disabled selected>Selecione a permissão</option>
+                        <option value="user">Usuário Padrão</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="fa-solid fa-user-plus me-2"></i>Criar Usuário
+                </button>
+            </form>
         </div>
     </div>
 </div>
+
 {% endblock %}

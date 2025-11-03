@@ -3,33 +3,269 @@
 {% block title %}Registrar Chegada{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white">
-                <h3 class="text-center mb-0">Registrar Chegada de Veículo</h3>
+<style>
+    .arrival-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    
+    .arrival-container {
+        width: 100%;
+        max-width: 600px;
+    }
+    
+    .arrival-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px 12px 0 0;
+        text-align: center;
+    }
+    
+    .arrival-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .arrival-header p {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .arrival-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+    
+    .arrival-card-body {
+        padding: 2.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.8rem;
+    }
+    
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.7rem;
+        font-size: 0.95rem;
+    }
+    
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-color: white;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        outline: none;
+    }
+    
+    .form-select option {
+        padding: 0.5rem;
+    }
+    
+    .vehicle-selector {
+        display: grid;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .vehicle-option {
+        background: #f9fafb;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .vehicle-option:hover {
+        border-color: #28a745;
+        background: #f0fdf4;
+    }
+    
+    .vehicle-option input[type="radio"]:checked + .vehicle-info {
+        color: #28a745;
+    }
+    
+    .vehicle-info {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1.5rem;
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+    
+    .info-box {
+        background: #ecfdf5;
+        border-left: 4px solid #28a745;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        color: #065f46;
+    }
+    
+    .info-box i {
+        color: #28a745;
+        margin-right: 0.5rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+    
+    [data-bs-theme="dark"] .arrival-card {
+        background: #1e293b;
+    }
+    
+    [data-bs-theme="dark"] .form-label {
+        color: #f1f5f9;
+    }
+    
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select {
+        background-color: #334155;
+        border-color: #475569;
+        color: #f1f5f9;
+    }
+    
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        border-color: #28a745;
+    }
+    
+    [data-bs-theme="dark"] .vehicle-option {
+        background: #334155;
+        border-color: #475569;
+        color: #f1f5f9;
+    }
+    
+    [data-bs-theme="dark"] .vehicle-option:hover {
+        border-color: #28a745;
+        background: #1e3a2a;
+    }
+    
+    [data-bs-theme="dark"] .info-box {
+        background: #064e3b;
+        color: #86efac;
+    }
+    
+    @media (max-width: 768px) {
+        .arrival-card-body {
+            padding: 1.5rem;
+        }
+        
+        .arrival-header h1 {
+            font-size: 1.4rem;
+        }
+    }
+</style>
+
+<div class="arrival-page">
+    <div class="arrival-container">
+        <div class="arrival-card">
+            <div class="arrival-header">
+                <h1><i class="fa-solid fa-car-side me-2"></i>Registrar Chegada</h1>
+                <p>Finalize o registro do retorno do veículo</p>
             </div>
-            <div class="card-body">
-                <form action="/registrar-chegada" method="post">
-                    <div class="mb-3">
-                        <label for="veiculo" class="form-label">Veículo (Em Uso):</label>
-                        <select class="form-select" id="veiculo" name="veiculo" required>
-                            <option value="" disabled selected>Selecione o veículo que retornou</option>
-                            {% for v in veiculos_em_uso %}
-                            <option value="{{ v.Placa }}">{{ v.Modelo }} - {{ v.Placa }}</option>
-                            {% endfor %}
-                        </select>
+            
+            <div class="arrival-card-body">
+                {% if veiculos_em_uso|length > 0 %}
+                    <div class="info-box">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <strong>{{ veiculos_em_uso|length }}</strong> veículo(s) disponível(is) para registrar chegada
                     </div>
-                    <div class="mb-3">
-                        <label for="km_final" class="form-label">Quilometragem Final:</label>
-                        <input type="number" class="form-control" id="km_final" name="km_final" placeholder="Ex: 85650" required>
+                    
+                    <form action="/registrar-chegada" method="post">
+                        <div class="form-group">
+                            <label for="veiculo" class="form-label">
+                                <i class="fa-solid fa-car me-1"></i>Veículo em Uso
+                            </label>
+                            <select class="form-select" id="veiculo" name="veiculo" required onchange="updateVehicleInfo()">
+                                <option value="" disabled selected>Selecione o veículo que retornou</option>
+                                {% for v in veiculos_em_uso %}
+                                <option value="{{ v.Placa }}" data-modelo="{{ v.Modelo }}">{{ v.Modelo }} - {{ v.Placa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="km_final" class="form-label">
+                                <i class="fa-solid fa-gauge me-1"></i>Quilometragem Final (KM)
+                            </label>
+                            <input type="number" class="form-control" id="km_final" name="km_final" 
+                                   placeholder="Insira o KM final do veículo" required 
+                                   style="font-size: 1.1rem; font-weight: 600;">
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <i class="fa-solid fa-check-circle me-2"></i>Confirmar Chegada
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-inbox"></i>
+                        <h3 style="color: #6b7280;">Nenhum veículo em uso</h3>
+                        <p style="color: #9ca3af;">Todos os veículos já retornaram. Nada a registrar no momento.</p>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success btn-lg">Registrar Chegada</button>
-                    </div>
-                </form>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function updateVehicleInfo() {
+    // This function can be expanded for additional validations
+}
+</script>
 {% endblock %}
