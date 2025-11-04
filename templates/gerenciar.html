@@ -144,7 +144,11 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
                             <strong>{{ u.username }}</strong><br>
-                            <small class="text-muted">Usuário do sistema</small>
+                            {% if u.telefone %}
+                            <small class="text-muted"><i class="fa-solid fa-phone me-1"></i>{{ u.telefone }}</small>
+                            {% else %}
+                            <small class="text-muted">Sem telefone cadastrado</small>
+                            {% endif %}
                         </div>
                         <span class="badge bg-{{ 'danger' if u.role == 'admin' else 'secondary' }}">
                             {{ u.role|upper }}
@@ -163,6 +167,10 @@
                 </div>
                 <div class="mb-3">
                     <input type="password" name="password" class="form-control" placeholder="Senha" required>
+                </div>
+                <div class="mb-3">
+                    <input type="tel" name="telefone" class="form-control" placeholder="Telefone (ex: 11987654321)" required>
+                    <small class="form-text text-muted">Apenas números, com DDD</small>
                 </div>
                 <div class="mb-3">
                     <select class="form-select" name="role" required>

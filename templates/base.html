@@ -19,11 +19,14 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa-solid fa-route fa-fw me-1"></i>Registrar Saída</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('chegada') }}"><i class="fa-solid fa-flag-checkered fa-fw me-1"></i>Registrar Chegada</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('cronograma') }}"><i class="fa-solid fa-clock fa-fw me-1"></i>Cronograma</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('historico') }}"><i class="fa-solid fa-timeline fa-fw me-1"></i>Histórico</a></li>
                         {% if current_user.role == 'admin' %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('registrar_saida') }}"><i class="fa-solid fa-route fa-fw me-1"></i>Registrar Saída</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('chegada') }}"><i class="fa-solid fa-flag-checkered fa-fw me-1"></i>Registrar Chegada</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('cronograma') }}"><i class="fa-solid fa-clock fa-fw me-1"></i>Cronograma</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('agendamentos') }}"><i class="fa-solid fa-calendar-check fa-fw me-1"></i>Agendamentos</a></li>
+                        {% if current_user.role == 'admin' %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('historico') }}"><i class="fa-solid fa-timeline fa-fw me-1"></i>Histórico</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('gerenciar') }}"><i class="fa-solid fa-users-gear fa-fw me-1"></i>Gerenciar</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ url_for('relatorios') }}"><i class="fa-solid fa-chart-pie fa-fw me-1"></i>Relatórios</a></li>
                         {% endif %}
@@ -32,7 +35,14 @@
                 <ul class="navbar-nav d-flex align-items-center">
                      {% if current_user.is_authenticated %}
                         <li class="nav-item d-flex align-items-center me-3">
-                            <span class="navbar-text"><i class="fa-solid fa-user me-2"></i>Olá, {{ current_user.id }}!</span>
+                            <span class="navbar-text">
+                                <i class="fa-solid fa-user me-2"></i>Olá, {{ current_user.id }}!
+                                {% if current_user.role == 'admin' %}
+                                    <span class="badge bg-danger ms-2"><i class="fa-solid fa-shield-halved me-1"></i>Admin</span>
+                                {% else %}
+                                    <span class="badge bg-info ms-2"><i class="fa-solid fa-user-check me-1"></i>Usuário</span>
+                                {% endif %}
+                            </span>
                         </li>
                      {% endif %}
 

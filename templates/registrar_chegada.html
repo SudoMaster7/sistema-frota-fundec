@@ -231,9 +231,9 @@
                                 <i class="fa-solid fa-car me-1"></i>Veículo em Uso
                             </label>
                             <select class="form-select" id="veiculo" name="veiculo" required onchange="updateVehicleInfo()">
-                                <option value="" disabled selected>Selecione o veículo que retornou</option>
+                                <option value="" disabled {% if not placa_pref %}selected{% endif %}>Selecione o veículo que retornou</option>
                                 {% for v in veiculos_em_uso %}
-                                <option value="{{ v.Placa }}" data-modelo="{{ v.Modelo }}">{{ v.Modelo }} - {{ v.Placa }}</option>
+                                <option value="{{ v.Placa }}" data-modelo="{{ v.Modelo }}" {% if placa_pref and placa_pref == v.Placa %}selected{% endif %}>{{ v.Modelo }} - {{ v.Placa }}</option>
                                 {% endfor %}
                             </select>
                         </div>

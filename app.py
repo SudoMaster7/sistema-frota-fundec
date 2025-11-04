@@ -21,48 +21,70 @@ login_manager.login_message = "Por favor, faça o login para acessar esta págin
 login_manager.login_message_category = "info"
 
 
-# --- CONEXÃO COM GOOGLE SHEETS (VERSÃO PARA DEPLOY) ---
+# --- CONEXÃO COM GOOGLE SHEETS ---
 try:
     scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive.file']
 
-    # Pega o conteúdo do JSON da variável de ambiente
+    # Tenta primeira: variável de ambiente (PRODUÇÃO)
     creds_json_str = os.environ.get('GOOGLE_CREDENTIALS_JSON')
-    if not creds_json_str:
-        raise ValueError("A variável de ambiente GOOGLE_CREDENTIALS_JSON não foi encontrada.")
-
-    # Converte a string JSON em um dicionário Python
-    creds_dict = json.loads(creds_json_str)
-
-    # Autoriza usando o dicionário de credenciais
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    
+    if creds_json_str:
+        # Produção: usar variável de ambiente
+        print("📌 Usando credenciais da variável de ambiente GOOGLE_CREDENTIALS_JSON")
+        creds_dict = json.loads(creds_json_str)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    else:
+        # Desenvolvimento: tentar arquivo local
+        try:
+            print("📌 Buscando arquivo credentials.json local...")
+            creds = ServiceAccountCredentials.from_json_keyfile_name(
+                'credentials.json',
+                scope
+            )
+            print("✅ Usando arquivo credentials.json local")
+        except FileNotFoundError:
+            raise ValueError(
+                "\n❌ ERRO: Não foi possível conectar ao Google Sheets.\n"
+                "   Configure uma das opções:\n"
+                "   1. Adicione 'credentials.json' na pasta raiz\n"
+                "   2. Configure a variável de ambiente GOOGLE_CREDENTIALS_JSON\n"
+                "   Veja 'CONFIGURAR_CREDENCIAIS.md' para mais detalhes."
+            )
+    
     client = gspread.authorize(creds)
-
     spreadsheet = client.open_by_key('1ZjTYIRF_n91JSCI1OytRYaRFiGkZX2JgoqB0eRIwu8I')
-    # ... (resto das planilhas) ...
+    
+    # Carrega todas as planilhas
     viagens_sheet = spreadsheet.worksheet("DB_Viagens")
     motoristas_sheet = spreadsheet.worksheet("DB_Motoristas")
     veiculos_sheet = spreadsheet.worksheet("DB_Veiculos")
     usuarios_sheet = spreadsheet.worksheet("DB_Usuarios")
-    print("Conexão com Google Sheets estabelecida com sucesso.")
+    agendamentos_sheet = spreadsheet.worksheet("DB_Agendamentos")
+    
+    print("✅ Conexão com Google Sheets estabelecida com sucesso!")
 except Exception as e:
-    print(f"ERRO CRÍTICO ao conectar com Google Sheets: {e}")
+    print(f"\n❌ ERRO CRÍTICO ao conectar com Google Sheets:\n   {e}")
+    print("\n💡 Solução: Consulte 'CONFIGURAR_CREDENCIAIS.md' para instruções")
     # Em um ambiente de produção, você pode querer lidar com isso de forma mais elegante
     # Por enquanto, vamos parar a aplicação se a conexão falhar.
     exit()
 
 # --- MODELO DE USUÁRIO ---
 class User(UserMixin):
-    def __init__(self, id, password_hash, role):
+    def __init__(self, id, password_hash, role, telefone=None):
         self.id = id
         self.password_hash = password_hash
         self.role = role
+        self.telefone = telefone
 
     @staticmethod
     def get(user_id):
         try:
             user_data = usuarios_sheet.find(user_id)
             user_row = usuarios_sheet.row_values(user_data.row)
-            return User(id=user_row[0], password_hash=user_row[1], role=user_row[2])
+            # Suporta usuários antigos sem telefone (coluna 4)
+            telefone = user_row[3] if len(user_row) > 3 else None
+            return User(id=user_row[0], password_hash=user_row[1], role=user_row[2], telefone=telefone)
         except Exception as e:
             return None
 
@@ -103,7 +125,19 @@ def logout():
 
 # --- FUNÇÕES AUXILIARES ---
 def get_all_records(sheet):
-    return sheet.get_all_records()
+    """Retorna todos os registros da planilha, ignorando colunas vazias extras."""
+    try:
+        return sheet.get_all_records()
+    except Exception as e:
+        # Se houver erro de cabeçalhos duplicados, tentar com cabeçalhos esperados
+        if "duplicates" in str(e):
+            # Para DB_Viagens, especificar os cabeçalhos corretos
+            if "Viagens" in sheet.title:
+                expected = ['ID', 'Motorista', 'PlacaVeiculo', 'KmInicial', 'KmFinal', 
+                           'DataSaida', 'HoraSaida', 'DataChegada', 'HoraChegada', 
+                           'Destinos', 'Status', 'Passageiros', 'Observacoes']
+                return sheet.get_all_records(expected_headers=expected)
+        raise
 
 # --- ROTAS PRINCIPAIS ---
 
@@ -158,49 +192,105 @@ def index():
     return render_template('index.html', **contexto)
 
 
-@app.route('/registrar-saida', methods=['POST'])
-@login_required
+@app.route('/registrar-saida', methods=['GET', 'POST'])
+@admin_required
 def registrar_saida():
-    """Processa os dados do formulário de saída."""
+    """Página e processamento para Registrar Saída (apenas admin)."""
     try:
-        # ALTERAÇÃO: Lógica para definir o nome do motorista baseado na permissão (role)
-        if current_user.role == 'admin':
-            # Se for admin, pega o motorista selecionado no formulário
-            motorista = request.form.get('motorista')
-            if not motorista:
-                flash('Como administrador, você deve selecionar um motorista.', 'danger')
-                return redirect(url_for('index'))
-        else:
-            # Se não for admin, o motorista é o próprio usuário logado
-            motorista = current_user.id
+        # Se for GET, renderiza o formulário em página dedicada
+        if request.method == 'GET':
+            # Listar agendamentos elegíveis (Confirmado/Agendado) para hoje ou datas futuras
+            ag_list = agendamentos_sheet.get_all_records()
+            agendamentos_disponiveis = [a for a in ag_list if a.get('Status') in ['Confirmado', 'Agendado']]
+            # Pré-selecionar via querystring (atalho vindo da lista de agendamentos)
+            agendamento_id_qs = request.args.get('agendamento_id')
+            agendamento_selecionado = None
+            if agendamento_id_qs:
+                for a in agendamentos_disponiveis:
+                    if str(a.get('ID')) == str(agendamento_id_qs):
+                        agendamento_selecionado = a
+                        break
+            return render_template('registrar_saida.html', agendamentos=agendamentos_disponiveis, agendamento_selecionado=agendamento_selecionado)
 
-        # O restante da lógica permanece igual
-        placa = request.form.get('veiculo')
+        # POST: registrar saída com base em um agendamento selecionado
+        agendamento_id = request.form.get('agendamento_id')
+        if not agendamento_id:
+            flash('Selecione um agendamento para registrar a saída.', 'danger')
+            return redirect(url_for('registrar_saida'))
+
+        # Encontrar o agendamento e sua linha na planilha
+        ag_list = agendamentos_sheet.get_all_records()
+        agendamento = None
+        agendamento_row = None
+        for idx, a in enumerate(ag_list, 2):
+            if str(a.get('ID')) == str(agendamento_id):
+                agendamento = a
+                agendamento_row = idx
+                break
+        if not agendamento:
+            flash('Agendamento não encontrado.', 'danger')
+            return redirect(url_for('registrar_saida'))
+        if agendamento.get('Status') not in ['Confirmado', 'Agendado']:
+            flash('Este agendamento não está elegível para registro de saída.', 'warning')
+            return redirect(url_for('registrar_saida'))
+
+        # Dados vindos do agendamento
+        motorista = agendamento.get('Motorista')
+        placa = agendamento.get('PlacaVeiculo')
+        destinos = agendamento.get('Destinos', '')
+        passageiros = agendamento.get('Passageiros', '0')
+        obs_agendamento = agendamento.get('Observacoes', '')
+
+        # Campo obrigatório no formulário
         km_inicial = request.form.get('km_inicial')
-        destinos = request.form.get('destinos')
-        passageiros = request.form.get('passageiros', '0')
-        observacoes = request.form.get('observacoes', '')
+        observacoes_extra = request.form.get('observacoes', '')
+        antecipar = request.form.get('antecipar', 'nao')
         
-        # Novos campos: data e hora
-        data_saida_input = request.form.get('data_saida')
-        hora_saida_input = request.form.get('hora_saida')
+        if not km_inicial:
+            flash('Informe o KM inicial.', 'danger')
+            return redirect(url_for('registrar_saida'))
+
+        # Definir data/hora atuais em São Paulo
+        fuso_horario_sp = pytz.timezone("America/Sao_Paulo")
+        agora = datetime.now(fuso_horario_sp)
+        data_saida = agora.strftime('%d/%m/%Y')
+        hora_saida = agora.strftime('%H:%M')
         
-        # Validar se os campos foram preenchidos
-        if not data_saida_input or not hora_saida_input:
-            flash('Data e hora são obrigatórias.', 'danger')
-            return redirect(url_for('index'))
+        # Validar se a saída está sendo feita dentro do horário agendado
+        data_agendada = agendamento.get('DataSolicitada', '')
+        hora_inicio_agendada = agendamento.get('HoraInicio', '')
+        hora_fim_agendada = agendamento.get('HoraFim', '')
         
-        # Converter para o formato correto
-        data_saida = data_saida_input  # Já vem no formato YYYY-MM-DD, converter para DD/MM/YYYY
-        hora_saida = hora_saida_input  # Já vem no formato HH:MM
-        
-        # Converter data de YYYY-MM-DD para DD/MM/YYYY se necessário
-        try:
-            data_obj = datetime.strptime(data_saida, '%Y-%m-%d')
-            data_saida = data_obj.strftime('%d/%m/%Y')
-        except:
-            # Se já estiver no formato correto, manter como está
-            pass
+        # Verificar se é o mesmo dia
+        if data_saida == data_agendada:
+            # Comparar horários
+            hora_atual_min = int(agora.strftime('%H')) * 60 + int(agora.strftime('%M'))
+            try:
+                h_ini, m_ini = hora_inicio_agendada.split(':')
+                hora_inicio_min = int(h_ini) * 60 + int(m_ini)
+                
+                if hora_atual_min < hora_inicio_min:
+                    # Saída antecipada - precisa confirmação
+                    diferenca_min = hora_inicio_min - hora_atual_min
+                    horas_diff = diferenca_min // 60
+                    minutos_diff = diferenca_min % 60
+                    
+                    if antecipar != 'sim':
+                        msg = f'⏰ O agendamento está marcado para começar às {hora_inicio_agendada} '
+                        msg += f'(daqui a {horas_diff}h{minutos_diff}min). '
+                        msg += 'Deseja antecipar a saída?'
+                        flash(msg, 'warning')
+                        # Renderizar novamente com opção de confirmação
+                        ag_list = agendamentos_sheet.get_all_records()
+                        agendamentos_disponiveis = [a for a in ag_list if a.get('Status') in ['Confirmado', 'Agendado']]
+                        return render_template('registrar_saida.html', 
+                                             agendamentos=agendamentos_disponiveis,
+                                             agendamento_selecionado=agendamento,
+                                             km_inicial=km_inicial,
+                                             observacoes=observacoes_extra,
+                                             aviso_antecipacao=msg)
+            except:
+                pass  # Se houver erro ao parsear horário, continuar normalmente
 
         # Nova viagem com estrutura compatível com a planilha
         nova_viagem = [
@@ -216,16 +306,25 @@ def registrar_saida():
             destinos,                                   # Destinos
             "Em Rota",                                  # Status
             passageiros,                                # Passageiros
-            observacoes                                 # Observacoes
+            f"[Agendamento ID: {agendamento_id}] " + (observacoes_extra or obs_agendamento or '')  # Observacoes
         ]
-        viagens_sheet.append_row(nova_viagem)
-        
-        # CORREÇÃO: Lógica para encontrar e atualizar célula usando a exceção correta
+        # Escrever na próxima linha disponível nas colunas A:M (colunas 1-13)
+        next_row = len(viagens_sheet.get_all_values()) + 1
+        viagens_sheet.append_row(nova_viagem, value_input_option='RAW', table_range='A1:M1')
+
+        # Atualizar status do veículo
         try:
             cell = veiculos_sheet.find(placa)
             veiculos_sheet.update_cell(cell.row, 4, "Em Uso")
         except Exception as e:
             flash(f'AVISO: Placa {placa} não encontrada na planilha de veículos para atualização de status.', 'warning')
+
+        # Atualizar o agendamento para "Em Uso"
+        try:
+            agendamentos_sheet.update_cell(agendamento_row, 11, 'Em Uso')  # Status
+            agendamentos_sheet.update_cell(agendamento_row, 15, agora.strftime('%d/%m/%Y %H:%M'))  # UltimaAtualizacao
+        except Exception as e:
+            flash(f'AVISO: Não foi possível atualizar o status do agendamento {agendamento_id}.', 'warning')
 
         flash('Saída registrada com sucesso!', 'success')
         return redirect(url_for('cronograma'))
@@ -235,13 +334,14 @@ def registrar_saida():
         return redirect(url_for('index'))
 
 @app.route('/chegada')
-@login_required
+@admin_required
 def chegada():
     veiculos_em_uso = [v for v in veiculos_sheet.get_all_records() if v['Status'] == 'Em Uso']
-    return render_template('registrar_chegada.html', veiculos_em_uso=veiculos_em_uso)
+    placa_pref = request.args.get('placa')
+    return render_template('registrar_chegada.html', veiculos_em_uso=veiculos_em_uso, placa_pref=placa_pref)
 
 @app.route('/registrar-chegada', methods=['POST'])
-@login_required
+@admin_required
 def registrar_chegada():
     placa = request.form.get('veiculo')
     km_final_str = request.form.get('km_final')
@@ -283,6 +383,20 @@ def registrar_chegada():
         veiculos_sheet.update_cell(cell_veiculo.row, 4, "Disponível")
     except Exception as e:
         flash(f'AVISO: Placa {placa} não encontrada para liberar o status.', 'warning')
+
+    # Atualizar agendamento correspondente para "Realizado"
+    try:
+        ag_list = agendamentos_sheet.get_all_records()
+        ag_row_to_update = None
+        for idx, a in enumerate(ag_list, 2):
+            if a.get('PlacaVeiculo') == placa and a.get('Status') == 'Em Uso':
+                ag_row_to_update = idx
+                break
+        if ag_row_to_update:
+            agendamentos_sheet.update_cell(ag_row_to_update, 11, 'Realizado')
+            agendamentos_sheet.update_cell(ag_row_to_update, 15, datetime.now(pytz.timezone("America/Sao_Paulo")).strftime('%d/%m/%Y %H:%M'))
+    except Exception as e:
+        pass
     
     flash('Chegada registrada com sucesso!', 'success')
     return redirect(url_for('index'))
@@ -294,6 +408,10 @@ def registrar_chegada():
 def cronograma():
     viagens_em_rota = [v for v in get_all_records(viagens_sheet) if v['Status'] == 'Em Rota']
     
+    # Buscar todos os agendamentos para cruzar informações
+    agendamentos_list = agendamentos_sheet.get_all_records()
+    usuarios_list = usuarios_sheet.get_all_records()
+    
     # Enriquecer os dados com informações adicionais
     for viagem in viagens_em_rota:
         # Garantir que todos os campos existem, mesmo que vazios
@@ -303,6 +421,45 @@ def cronograma():
             viagem['Observacoes'] = ''
         if 'HoraChegada' not in viagem:
             viagem['HoraChegada'] = ''
+        
+        # Extrair ID do agendamento das observações
+        obs = viagem.get('Observacoes', '')
+        agendamento_id = None
+        if '[Agendamento ID:' in obs:
+            try:
+                agendamento_id = obs.split('[Agendamento ID:')[1].split(']')[0].strip()
+            except:
+                pass
+        
+        # Buscar informações do agendamento e do usuário que fez
+        if agendamento_id:
+            for agend in agendamentos_list:
+                if str(agend.get('ID')) == str(agendamento_id):
+                    # Prioriza extrair o usuário que AGENDOU (não o motorista) das observações do admin
+                    obs_admin = agend.get('Observacoes_Admin', '') or ''
+                    agendado_por_username = None
+
+                    if 'Agendado por:' in obs_admin:
+                        try:
+                            agendado_por_username = obs_admin.split('Agendado por:')[1].split(')')[0].strip()
+                        except Exception:
+                            agendado_por_username = None
+
+                    # Caso no futuro exista uma coluna específica, usa como fallback
+                    if not agendado_por_username:
+                        agendado_por_username = agend.get('AgendadoPor') or agend.get('Usuario')
+
+                    if agendado_por_username:
+                        viagem['AgendadoPor'] = agendado_por_username
+                        # Buscar telefone do usuário que agendou
+                        for usuario in usuarios_list:
+                            if str(usuario.get('username')) == str(agendado_por_username):
+                                viagem['TelefoneContato'] = usuario.get('telefone', 'Não informado')
+                                break
+                    else:
+                        # Não conseguiu identificar quem agendou; mantém campo vazio para não exibir
+                        viagem['AgendadoPor'] = ''
+                    break
     
     return render_template('cronograma.html', viagens=viagens_em_rota)
 
@@ -350,21 +507,12 @@ def cancelar_viagem():
         return redirect(url_for('cronograma'))
 
 @app.route('/historico')
-@login_required
+@admin_required
 def historico():
     viagens_finalizadas = [v for v in get_all_records(viagens_sheet) if v['Status'] == 'Finalizada']
     return render_template('historico.html', viagens=viagens_finalizadas)
 
 # --- ROTAS DE ADMIN (PROTEGIDAS E COM VERIFICAÇÃO DE PAPEL) ---
-
-def admin_required(f):
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if current_user.role != 'admin':
-            abort(403) # Erro de Acesso Proibido
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
 
 # --- PÁGINA DE GERENCIAMENTO ---
 
@@ -445,7 +593,282 @@ def relatorios():
                            data_display=data_display,
                            data_input_value=data_input_value)
 
+# --- ROTAS DE AGENDAMENTO ---
+
+@app.route('/agendamentos')
+@login_required
+def agendamentos():
+    """Exibe lista de agendamentos do motorista ou todos (admin)."""
+    agendamentos_list = agendamentos_sheet.get_all_records()
+    # Filtros via querystring
+    status_f = request.args.get('status', '').strip()
+    placa_f = request.args.get('placa', '').strip()
+    motorista_f = request.args.get('motorista', '').strip()
+    data_de_f = request.args.get('data_de', '').strip()   # YYYY-MM-DD
+    data_ate_f = request.args.get('data_ate', '').strip() # YYYY-MM-DD
+    somente_ativos = request.args.get('somente_ativos', '').strip()  # '1' or ''
+
+    # Aplicar filtros
+    def parse_ddmmyyyy(s):
+        try:
+            return datetime.strptime(s, '%d/%m/%Y').date()
+        except Exception:
+            return None
+
+    data_de = None
+    data_ate = None
+    try:
+        if data_de_f:
+            data_de = datetime.strptime(data_de_f, '%Y-%m-%d').date()
+        if data_ate_f:
+            data_ate = datetime.strptime(data_ate_f, '%Y-%m-%d').date()
+    except Exception:
+        data_de = None
+        data_ate = None
+
+    filtrados = []
+    for ag in agendamentos_list:
+        # Status
+        if status_f and str(ag.get('Status', '')).strip() != status_f:
+            continue
+        # Placa
+        if placa_f and placa_f.lower() not in str(ag.get('PlacaVeiculo', '')).lower():
+            continue
+        # Motorista (substring)
+        if motorista_f and motorista_f.lower() not in str(ag.get('Motorista', '')).lower():
+            continue
+        # Intervalo de data solicitada
+        ds = parse_ddmmyyyy(str(ag.get('DataSolicitada', '')))
+        if data_de and (not ds or ds < data_de):
+            continue
+        if data_ate and (not ds or ds > data_ate):
+            continue
+        # Somente futuros/ativos: inclui 'Em Uso' sempre; inclui 'Agendado'/'Confirmado' com data de hoje ou futura; exclui 'Cancelado' e 'Realizado'
+        if somente_ativos in ['1', 'on', 'true', 'True']:
+            status_val = str(ag.get('Status', '')).strip()
+            hoje = datetime.now().date()
+            if status_val == 'Em Uso':
+                pass  # sempre inclui
+            elif status_val in ['Agendado', 'Confirmado']:
+                if not ds or ds < hoje:
+                    continue
+            else:
+                # Realizado, Cancelado ou qualquer outro status
+                continue
+        filtrados.append(ag)
+
+    # Ordenação desejada:
+    # 1) DataSolicitada ASC (próximos dias primeiro)
+    # 2) Dentro do mesmo dia, ID DESC (agendamentos mais novos no topo)
+    def id_int(item):
+        try:
+            return int(str(item.get('ID', '0')).strip())
+        except Exception:
+            return 0
+
+    def data_solicitada(item):
+        try:
+            return datetime.strptime(item.get('DataSolicitada', ''), '%d/%m/%Y').date()
+        except Exception:
+            return datetime.max.date()
+
+    filtrados.sort(key=lambda x: (data_solicitada(x), -id_int(x)))
+
+    # Enriquecer com "AgendadoPor" e "TelefoneContato" (como no cronograma)
+    try:
+        usuarios_list = usuarios_sheet.get_all_records()
+        for ag in filtrados:
+            obs_admin = (ag.get('Observacoes_Admin') or '').strip()
+            agendado_por_username = None
+
+            if 'Agendado por:' in obs_admin:
+                try:
+                    agendado_por_username = obs_admin.split('Agendado por:')[1].split(')')[0].strip()
+                except Exception:
+                    agendado_por_username = None
+
+            if not agendado_por_username:
+                agendado_por_username = ag.get('AgendadoPor') or ag.get('Usuario')
+
+            if agendado_por_username:
+                ag['AgendadoPor'] = agendado_por_username
+                for usuario in usuarios_list:
+                    if str(usuario.get('username')) == str(agendado_por_username):
+                        ag['TelefoneContato'] = usuario.get('telefone', 'Não informado')
+                        break
+    except Exception:
+        pass
+    
+    return render_template('agendamentos.html', agendamentos=filtrados,
+                           status_f=status_f, placa_f=placa_f, motorista_f=motorista_f,
+                           data_de_f=data_de_f, data_ate_f=data_ate_f, somente_ativos=somente_ativos)
+
+@app.route('/agendar-veiculo', methods=['GET', 'POST'])
+@login_required
+def agendar_veiculo():
+    """Página para agendar um veículo."""
+    if request.method == 'POST':
+        try:
+            # Obter dados do formulário
+            placa = request.form.get('veiculo')
+            motorista_selecionado = request.form.get('motorista')
+            data_solicitada = request.form.get('data_solicitada')
+            hora_inicio = request.form.get('hora_inicio')
+            hora_fim = request.form.get('hora_fim')
+            destinos = request.form.get('destinos')
+            passageiros = request.form.get('passageiros', '1')
+            observacoes = request.form.get('observacoes', '')
+            
+            # Validações
+            if not placa or not motorista_selecionado or not data_solicitada or not hora_inicio or not hora_fim or not destinos:
+                flash('Todos os campos obrigatórios devem ser preenchidos.', 'danger')
+                return redirect(url_for('agendar_veiculo'))
+            
+            # Validar se a data é futura
+            try:
+                data_obj = datetime.strptime(data_solicitada, '%Y-%m-%d').date()
+                if data_obj < datetime.now().date():
+                    flash('Não é possível agendar para datas passadas.', 'danger')
+                    return redirect(url_for('agendar_veiculo'))
+                data_formatada = data_obj.strftime('%d/%m/%Y')
+            except:
+                flash('Formato de data inválido.', 'danger')
+                return redirect(url_for('agendar_veiculo'))
+            
+            # Validar hora
+            if hora_inicio >= hora_fim:
+                flash('A hora de início deve ser antes da hora de fim.', 'danger')
+                return redirect(url_for('agendar_veiculo'))
+            
+            # Verificar se veículo existe
+            veiculos = veiculos_sheet.get_all_records()
+            veiculo_existe = any(v.get('Placa') == placa for v in veiculos)
+            if not veiculo_existe:
+                flash('Veículo não encontrado.', 'danger')
+                return redirect(url_for('agendar_veiculo'))
+            
+            # Verificar conflitos de agendamento
+            agendamentos_list = agendamentos_sheet.get_all_records()
+            for agend in agendamentos_list:
+                if (agend.get('PlacaVeiculo') == placa and 
+                    agend.get('DataSolicitada') == data_formatada and
+                    agend.get('Status') in ['Agendado', 'Confirmado', 'Em Uso']):
+                    
+                    # Verificar se horários se sobrepõem
+                    inicio_existe = agend.get('HoraInicio', '')
+                    fim_existe = agend.get('HoraFim', '')
+                    
+                    if not (hora_fim <= inicio_existe or hora_inicio >= fim_existe):
+                        flash(f'Conflito de horário! Este veículo já está agendado para {data_formatada} entre {inicio_existe} e {fim_existe}.', 'danger')
+                        return redirect(url_for('agendar_veiculo'))
+            
+            # Gerar novo ID
+            novo_id = len(agendamentos_list) + 1
+            data_agora = datetime.now().strftime('%d/%m/%Y')
+            hora_agora = datetime.now().strftime('%H:%M')
+            
+            # Criar novo agendamento - usar motorista selecionado
+            motorista = motorista_selecionado
+            
+            # Inclui no campo Observacoes_Admin quem fez o agendamento (username)
+            observacoes_admin = f'Novo agendamento (Agendado por: {current_user.id})'
+
+            novo_agendamento = [
+                str(novo_id),                          # ID
+                data_agora,                             # DataAgendamento
+                motorista,                              # Motorista
+                placa,                                  # PlacaVeiculo
+                data_formatada,                         # DataSolicitada
+                hora_inicio,                            # HoraInicio
+                hora_fim,                               # HoraFim
+                destinos,                               # Destinos
+                passageiros,                            # Passageiros
+                observacoes,                            # Observacoes
+                'Agendado',                             # Status
+                '',                                     # MotivoCancelamento
+                '',                                     # DataCancelamento
+                observacoes_admin,                      # Observacoes_Admin
+                f'{data_agora} {hora_agora}'            # UltimaAtualizacao
+            ]
+            
+            agendamentos_sheet.append_row(novo_agendamento)
+            flash('Veículo agendado com sucesso!', 'success')
+            return redirect(url_for('agendamentos'))
+            
+        except Exception as e:
+            print(f"ERRO ao agendar veículo: {e}")
+            flash(f'Erro ao agendar: {e}', 'danger')
+            return redirect(url_for('agendar_veiculo'))
+    
+    # GET: Mostrar formulário
+    veiculos = veiculos_sheet.get_all_records()
+    motoristas = motoristas_sheet.get_all_records()  # Buscar todos os motoristas para seleção
+    
+    # Data mínima = amanhã
+    data_minima = (datetime.now() + __import__('datetime').timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    return render_template('agendar_veiculo.html', 
+                         veiculos=veiculos, 
+                         motoristas=motoristas,
+                         data_minima=data_minima)
+
+@app.route('/confirmar-agendamento/<agendamento_id>', methods=['POST'])
+@admin_required
+def confirmar_agendamento(agendamento_id):
+    """Admin confirma um agendamento."""
+    try:
+        agendamentos_list = agendamentos_sheet.get_all_records()
+        
+        for idx, agend in enumerate(agendamentos_list, 2):
+            if str(agend.get('ID')) == str(agendamento_id):
+                data_agora = datetime.now().strftime('%d/%m/%Y %H:%M')
+                agendamentos_sheet.update_cell(idx, 11, 'Confirmado')  # Status
+                agendamentos_sheet.update_cell(idx, 15, data_agora)     # UltimaAtualizacao
+                flash('Agendamento confirmado com sucesso!', 'success')
+                break
+        else:
+            flash('Agendamento não encontrado.', 'danger')
+    except Exception as e:
+        print(f"ERRO ao confirmar agendamento: {e}")
+        flash(f'Erro ao confirmar: {e}', 'danger')
+    
+    return redirect(url_for('agendamentos'))
+
+@app.route('/cancelar-agendamento/<agendamento_id>', methods=['POST'])
+@login_required
+def cancelar_agendamento(agendamento_id):
+    """Cancela um agendamento (motorista ou admin)."""
+    try:
+        motivo = request.form.get('motivo_cancelamento', '')
+        agendamentos_list = agendamentos_sheet.get_all_records()
+        
+        for idx, agend in enumerate(agendamentos_list, 2):
+            if str(agend.get('ID')) == str(agendamento_id):
+                # Verificar permissão
+                if current_user.role != 'admin' and agend.get('Motorista') != current_user.id:
+                    flash('Você não tem permissão para cancelar este agendamento.', 'danger')
+                    return redirect(url_for('agendamentos'))
+                
+                data_agora = datetime.now().strftime('%d/%m/%Y %H:%M')
+                data_cancelamento = datetime.now().strftime('%d/%m/%Y')
+                
+                agendamentos_sheet.update_cell(idx, 11, 'Cancelado')           # Status
+                agendamentos_sheet.update_cell(idx, 12, motivo)                # MotivoCancelamento
+                agendamentos_sheet.update_cell(idx, 13, data_cancelamento)     # DataCancelamento
+                agendamentos_sheet.update_cell(idx, 15, data_agora)            # UltimaAtualizacao
+                
+                flash('Agendamento cancelado com sucesso!', 'success')
+                break
+        else:
+            flash('Agendamento não encontrado.', 'danger')
+    except Exception as e:
+        print(f"ERRO ao cancelar agendamento: {e}")
+        flash(f'Erro ao cancelar: {e}', 'danger')
+    
+    return redirect(url_for('agendamentos'))
+
 @app.route('/add-motorista', methods=['POST'])
+@admin_required
 def add_motorista():
     try:
         nome = request.form.get('nome')
@@ -457,6 +880,7 @@ def add_motorista():
     return redirect(url_for('gerenciar'))
 
 @app.route('/add-veiculo', methods=['POST'])
+@admin_required
 def add_veiculo():
     try:
         modelo = request.form.get('modelo')
@@ -475,6 +899,7 @@ def add_user():
     try:
         username = request.form.get('username')
         password = request.form.get('password')
+        telefone = request.form.get('telefone')
         role = request.form.get('role')
 
         # Verifica se o usuário já existe
@@ -483,15 +908,15 @@ def add_user():
             return redirect(url_for('gerenciar'))
 
         # Validação simples
-        if not username or not password or not role:
+        if not username or not password or not role or not telefone:
             flash('Todos os campos são obrigatórios.', 'danger')
             return redirect(url_for('gerenciar'))
 
         # Criptografa a senha
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        # Adiciona o novo usuário na planilha
-        usuarios_sheet.append_row([username, password_hash, role])
+        # Adiciona o novo usuário na planilha (com telefone na 4ª coluna)
+        usuarios_sheet.append_row([username, password_hash, role, telefone])
         flash(f'Usuário {username} criado com sucesso!', 'success')
 
     except Exception as e:

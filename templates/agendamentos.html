@@ -1,0 +1,549 @@
+{% extends 'base.html' %}
+
+{% block title %}Agendamentos de Veículos{% endblock %}
+
+{% block content %}
+<style>
+    .agendamentos-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .agendamentos-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .agendamentos-header p {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .btn-agendar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-agendar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        color: white;
+    }
+    
+    .agendamentos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .agendamento-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .agendamento-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .agendamento-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .agendamento-placa {
+        font-size: 1.3rem;
+        font-weight: 700;
+        font-family: monospace;
+    }
+    
+    .status-badge {
+        padding: 0.35rem 0.7rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-agendado {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+    
+    .status-confirmado {
+        background: rgba(16, 185, 129, 0.2);
+        color: #059669;
+    }
+    
+    .status-em-uso {
+        background: rgba(59, 130, 246, 0.2);
+        color: #1e40af;
+    }
+    
+    .status-finalizado {
+        background: rgba(34, 197, 94, 0.2);
+        color: #15803d;
+    }
+    
+    .status-cancelado {
+        background: rgba(239, 68, 68, 0.2);
+        color: #b91c1c;
+    }
+    
+    .agendamento-body {
+        padding: 1.5rem;
+    }
+    
+    .agendamento-info {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-label {
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        color: #1f2937;
+        font-weight: 600;
+    }
+    
+    .agendamento-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn-action {
+        flex: 1;
+        padding: 0.6rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-confirmar {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-confirmar:hover {
+        background: #059669;
+    }
+    
+    .btn-cancelar {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .btn-cancelar:hover {
+        background: #dc2626;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+    
+    .destinos-box {
+        background: #f3f4f6;
+        padding: 0.75rem;
+        border-radius: 6px;
+        border-left: 3px solid #667eea;
+        margin-top: 0.5rem;
+    }
+    
+    .destinos-text {
+        color: #4b5563;
+        font-size: 0.9rem;
+    }
+    
+    [data-bs-theme="dark"] .agendamento-card {
+        background: #2d3748;
+        color: #f7fafc;
+    }
+    
+    [data-bs-theme="dark"] .info-label {
+        color: #cbd5e1;
+    }
+    
+    [data-bs-theme="dark"] .info-value {
+        color: #f1f5f9;
+    }
+    
+    [data-bs-theme="dark"] .agendamento-actions {
+        border-top-color: #4a5568;
+    }
+    
+    [data-bs-theme="dark"] .destinos-box {
+        background: #334155;
+        color: #e2e8f0;
+    }
+    
+    .modal-cancelamento {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-cancelamento.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 90%;
+    }
+    
+    [data-bs-theme="dark"] .modal-content {
+        background: #2d3748;
+        color: #f7fafc;
+    }
+</style>
+
+<div class="agendamentos-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+            <h1><i class="fa-solid fa-calendar-check me-2"></i>Agendamentos de Veículos</h1>
+            {% if current_user.role == 'admin' %}
+            <p>Veja e gerencie todos os agendamentos do sistema</p>
+            {% else %}
+            <p>Visualize os agendamentos para verificar a disponibilidade dos veículos</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('agendar_veiculo') }}" class="btn-agendar">
+            <i class="fa-solid fa-plus me-1"></i>Novo Agendamento
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4" style="border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <div class="card-body">
+        <form method="get" action="{{ url_for('agendamentos') }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fa-solid fa-filter me-1"></i>Status</label>
+                    <select name="status" class="form-select">
+                        <option value="" {% if not status_f %}selected{% endif %}>Todos</option>
+                        {% for st in ['Agendado','Confirmado','Em Uso','Realizado','Cancelado'] %}
+                        <option value="{{ st }}" {% if status_f==st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fa-solid fa-car me-1"></i>Placa</label>
+                    <input type="text" name="placa" class="form-control" placeholder="Ex: ABC-1234" value="{{ placa_f or '' }}" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fa-solid fa-user me-1"></i>Motorista</label>
+                    <input type="text" name="motorista" class="form-control" placeholder="Nome do motorista" value="{{ motorista_f or '' }}" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fa-solid fa-calendar-day me-1"></i>Data (de)</label>
+                    <input type="date" name="data_de" class="form-control" value="{{ data_de_f or '' }}" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fa-solid fa-calendar-day me-1"></i>Data (até)</label>
+                    <input type="date" name="data_ate" class="form-control" value="{{ data_ate_f or '' }}" />
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check" style="margin-top: 2rem;">
+                        <input class="form-check-input" type="checkbox" value="1" id="somente_ativos" name="somente_ativos" {% if somente_ativos in ['1','on','true','True'] %}checked{% endif %}>
+                        <label class="form-check-label" for="somente_ativos">
+                            <i class="fa-solid fa-bolt me-1"></i>Somente futuros/ativos
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i>Filtrar</button>
+                    <a class="btn btn-outline-secondary flex-fill" href="{{ url_for('agendamentos') }}"><i class="fa-solid fa-rotate-left me-1"></i>Limpar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+</div>
+
+<!-- Aviso de Permissões -->
+{% if current_user.role != 'admin' %}
+<div class="alert alert-info" style="margin-bottom: 2rem; border-left: 4px solid #3b82f6;">
+    <div style="display: flex; align-items: start; gap: 1rem;">
+        <i class="fa-solid fa-info-circle" style="font-size: 1.5rem; color: #3b82f6;"></i>
+        <div>
+            <h5 style="margin: 0 0 0.5rem 0; font-weight: 700;">
+                <i class="fa-solid fa-user-check me-1"></i>Informações sobre Agendamentos
+            </h5>
+            <ul style="margin: 0; padding-left: 1.2rem;">
+                <li><strong>Ver Cronograma:</strong> Você pode visualizar todos os veículos em uso</li>
+                <li><strong>Criar Agendamento:</strong> Você pode agendar veículos para datas futuras</li>
+                <li><strong>Aguardar Confirmação:</strong> Seus agendamentos precisam ser confirmados pelo administrador</li>
+                <li><strong>Cancelar:</strong> Você pode cancelar seus próprios agendamentos a qualquer momento</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-danger" style="margin-bottom: 2rem; border-left: 4px solid #ef4444;">
+    <div style="display: flex; align-items: start; gap: 1rem;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 1.5rem; color: #ef4444;"></i>
+        <div>
+            <h5 style="margin: 0 0 0.5rem 0; font-weight: 700;">
+                <i class="fa-solid fa-user-shield me-1"></i>Permissões de Administrador
+            </h5>
+            <ul style="margin: 0; padding-left: 1.2rem;">
+                <li><strong>Ver Todos:</strong> Você visualiza todos os agendamentos do sistema</li>
+                <li><strong>Confirmar:</strong> Você pode confirmar agendamentos pendentes</li>
+                <li><strong>Cancelar Qualquer:</strong> Você pode cancelar qualquer agendamento</li>
+                <li><strong>Criar Agendamento:</strong> Seus agendamentos são confirmados automaticamente</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if agendamentos|length > 0 %}
+    <div class="agendamentos-grid">
+        {% for agend in agendamentos %}
+        <div class="agendamento-card">
+            <div class="agendamento-header">
+                <span class="agendamento-placa">{{ agend.PlacaVeiculo }}</span>
+                <span class="status-badge status-{{ agend.Status|lower|replace(' ', '-') }}">
+                    {{ agend.Status }}
+                </span>
+            </div>
+            
+            <div class="agendamento-body">
+                <div class="agendamento-info">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-user me-1"></i>Motorista</span>
+                        <span class="info-value">{{ agend.Motorista }}</span>
+                    </div>
+
+                    {% if agend.AgendadoPor %}
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-calendar-check me-1"></i>Agendado por</span>
+                        <span class="info-value">{{ agend.AgendadoPor }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if agend.TelefoneContato %}
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-phone me-1"></i>Contato</span>
+                        <span class="info-value">{{ agend.TelefoneContato }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-calendar me-1"></i>Data Solicitada</span>
+                        <span class="info-value">{{ agend.DataSolicitada }}</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-clock me-1"></i>Horário</span>
+                        <span class="info-value">{{ agend.HoraInicio }} - {{ agend.HoraFim }}</span>
+                    </div>
+                    
+                    {% if agend.Passageiros %}
+                    <div class="info-item">
+                        <span class="info-label"><i class="fa-solid fa-users me-1"></i>Passageiros</span>
+                        <span class="info-value">{{ agend.Passageiros }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if agend.Destinos %}
+                    <div class="destinos-box">
+                        <div class="destinos-text">
+                            <strong><i class="fa-solid fa-map-pin me-1"></i>Destinos:</strong><br>
+                            {{ agend.Destinos }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if agend.Observacoes %}
+                    <div class="destinos-box" style="border-left-color: #f59e0b;">
+                        <div class="destinos-text">
+                            <strong><i class="fa-solid fa-note-sticky me-1"></i>Observações:</strong><br>
+                            {{ agend.Observacoes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="agendamento-actions">
+                    {% if current_user.role == 'admin' %}
+                        {% if agend.Status == 'Agendado' %}
+                            <form method="post" action="{{ url_for('confirmar_agendamento', agendamento_id=agend.ID) }}" style="flex: 1;">
+                                <button type="submit" class="btn-action btn-confirmar" style="width: 100%;">
+                                    <i class="fa-solid fa-check"></i>Confirmar
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        {% if agend.Status == 'Confirmado' %}
+                            <a href="{{ url_for('registrar_saida') }}?agendamento_id={{ agend.ID }}" class="btn-action btn btn-warning" style="color: #1f2937;">
+                                <i class="fa-solid fa-sign-out"></i> Registrar Saída
+                            </a>
+                        {% endif %}
+
+                        {% if agend.Status == 'Em Uso' %}
+                            <a href="{{ url_for('chegada') }}?placa={{ agend.PlacaVeiculo }}" class="btn-action btn btn-success">
+                                <i class="fa-solid fa-sign-in"></i> Registrar Chegada
+                            </a>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if agend.Status in ['Agendado','Confirmado'] %}
+                        <button class="btn-action btn-cancelar" onclick="abrirModalCancelamento('{{ agend.ID }}')">
+                            <i class="fa-solid fa-times"></i>Cancelar
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        {% if current_user.role == 'admin' %}
+            <h3>Nenhum agendamento encontrado</h3>
+            <p>Quando houver agendamentos, eles aparecerão aqui.</p>
+        {% else %}
+            <h3>Não há agendamentos no momento</h3>
+            <p>Todos os veículos parecem disponíveis. Você pode <a href="{{ url_for('agendar_veiculo') }}">criar um novo agendamento</a>.</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Modal de Cancelamento -->
+<div id="modalCancelamento" class="modal-cancelamento">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-exclamation-triangle me-2"></i>Cancelar Agendamento?</h3>
+        
+        <form id="formCancelamento" method="post">
+            <div style="margin-bottom: 1rem;">
+                <label for="motivoCancelamento" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    <i class="fa-solid fa-comment me-1"></i>Motivo (Opcional)
+                </label>
+                <textarea id="motivoCancelamento" name="motivo_cancelamento" class="form-control" rows="3" 
+                          placeholder="Descreva o motivo do cancelamento..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="btn" style="background: #e5e7eb; color: #1f2937; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer;" onclick="fecharModalCancelamento()">
+                    Manter
+                </button>
+                <button type="submit" class="btn" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                    Sim, Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let agendamentoIdCancelamento = null;
+
+function abrirModalCancelamento(agendamentoId) {
+    agendamentoIdCancelamento = agendamentoId;
+    document.getElementById('modalCancelamento').classList.add('show');
+    document.getElementById('modalCancelamento').style.display = 'flex';
+}
+
+function fecharModalCancelamento() {
+    document.getElementById('modalCancelamento').classList.remove('show');
+    document.getElementById('modalCancelamento').style.display = 'none';
+    agendamentoIdCancelamento = null;
+}
+
+document.getElementById('formCancelamento').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (agendamentoIdCancelamento) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/cancelar-agendamento/${agendamentoIdCancelamento}`;
+        
+        const motivo = document.getElementById('motivoCancelamento').value;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'motivo_cancelamento';
+        input.value = motivo;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
+// Fechar modal ao clicar fora
+document.getElementById('modalCancelamento').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalCancelamento();
+    }
+});
+</script>
+
+{% endblock %}

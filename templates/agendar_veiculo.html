@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+
+{% block title %}Agendar Veículo{% endblock %}
+
+{% block content %}
+<style>
+    .agendar-container {
+        max-width: 700px;
+        margin: 2rem auto;
+    }
+    
+    .agendar-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px 12px 0 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .agendar-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .agendar-header p {
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-required {
+        color: #ef4444;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-control::placeholder {
+        color: #9ca3af;
+    }
+    
+    .time-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .info-box {
+        background: #f0f9ff;
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #1e40af;
+    }
+    
+    .conflict-warning {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #b91c1c;
+        display: none;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn-submit {
+        flex: 1;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-agendar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-agendar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-voltar {
+        background: #e5e7eb;
+        color: #1f2937;
+    }
+    
+    .btn-voltar:hover {
+        background: #d1d5db;
+    }
+    
+    .availability-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+    
+    .availability-item {
+        background: #f3f4f6;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #4b5563;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .availability-status {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .status-available {
+        background: #10b981;
+    }
+    
+    .status-unavailable {
+        background: #ef4444;
+    }
+    
+    [data-bs-theme="dark"] .form-card {
+        background: #2d3748;
+        color: #f7fafc;
+    }
+    
+    [data-bs-theme="dark"] .form-label {
+        color: #e2e8f0;
+    }
+    
+    [data-bs-theme="dark"] .form-control {
+        background: #1a202c;
+        color: #f7fafc;
+        border-color: #4a5568;
+    }
+    
+    [data-bs-theme="dark"] .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+    
+    [data-bs-theme="dark"] .section-title {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+    
+    [data-bs-theme="dark"] .info-box {
+        background: #1e3a5f;
+        border-left-color: #3b82f6;
+        color: #93c5fd;
+    }
+    
+    [data-bs-theme="dark"] .conflict-warning {
+        background: #5f1f1f;
+        border-left-color: #ef4444;
+        color: #fca5a5;
+    }
+    
+    [data-bs-theme="dark"] .availability-item {
+        background: #334155;
+        color: #cbd5e1;
+    }
+    
+    [data-bs-theme="dark"] .btn-voltar {
+        background: #4a5568;
+        color: #f7fafc;
+    }
+    
+    [data-bs-theme="dark"] .btn-voltar:hover {
+        background: #5a6270;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #667eea;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="agendar-container">
+    <div class="agendar-header">
+        <h1><i class="fa-solid fa-calendar-plus me-2"></i>Agendar Veículo</h1>
+        <p>Reserve um veículo para a data e horário desejado</p>
+    </div>
+    
+    <div class="form-card">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show" role="alert">
+                    <i class="fa-solid fa-{{ 'circle-exclamation' if category == 'danger' else 'circle-check' if category == 'success' else 'triangle-exclamation' if category == 'warning' else 'circle-info' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" id="formAgendamento">
+            <!-- Seção: Veículo e Motorista -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fa-solid fa-car"></i>Informações do Veículo e Motorista
+                </div>
+                
+                <div class="form-group">
+                    <label for="veiculo" class="form-label">
+                        <i class="fa-solid fa-square"></i>Veículo <span class="form-required">*</span>
+                    </label>
+                    <select class="form-control" id="veiculo" name="veiculo" required>
+                        <option value="">Selecione um veículo...</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo.Placa }}">{{ veiculo.Placa }} - {{ veiculo.Modelo }} ({{ veiculo.Ano }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="motorista" class="form-label">
+                        <i class="fa-solid fa-user"></i>Motorista <span class="form-required">*</span>
+                    </label>
+                    <select class="form-control" id="motorista" name="motorista" required>
+                        <option value="">Selecione um motorista...</option>
+                        {% for motorista in motoristas %}
+                        <option value="{{ motorista.Nome }}">{{ motorista.Nome }} - Matrícula: {{ motorista.Matricula }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Seção: Data e Horário -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fa-solid fa-calendar-days"></i>Data e Horário
+                </div>
+                
+                <div class="info-box">
+                    <i class="fa-solid fa-info-circle me-1"></i>
+                    Os agendamentos devem ser feitos para datas futuras.
+                </div>
+                
+                <div class="form-group">
+                    <label for="data_solicitada" class="form-label">
+                        <i class="fa-solid fa-calendar"></i>Data <span class="form-required">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="data_solicitada" name="data_solicitada" required>
+                </div>
+                
+                <div class="time-inputs">
+                    <div class="form-group">
+                        <label for="hora_inicio" class="form-label">
+                            <i class="fa-solid fa-clock"></i>Hora Início <span class="form-required">*</span>
+                        </label>
+                        <input type="time" class="form-control" id="hora_inicio" name="hora_inicio" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hora_fim" class="form-label">
+                            <i class="fa-solid fa-clock"></i>Hora Fim <span class="form-required">*</span>
+                        </label>
+                        <input type="time" class="form-control" id="hora_fim" name="hora_fim" required>
+                    </div>
+                </div>
+                
+                <div id="conflictWarning" class="conflict-warning">
+                    <i class="fa-solid fa-warning me-1"></i>
+                    <span id="conflictText"></span>
+                </div>
+            </div>
+            
+            <!-- Seção: Detalhes da Viagem -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fa-solid fa-route"></i>Detalhes da Viagem
+                </div>
+                
+                <div class="form-group">
+                    <label for="destinos" class="form-label">
+                        <i class="fa-solid fa-map-pin"></i>Destinos <span class="form-required">*</span>
+                    </label>
+                    <textarea class="form-control" id="destinos" name="destinos" rows="3" 
+                              placeholder="Ex: Saída do pátio → Reunião no cliente ABC → Almoço → Retorno" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="passageiros" class="form-label">
+                        <i class="fa-solid fa-users"></i>Número de Passageiros
+                    </label>
+                    <input type="number" class="form-control" id="passageiros" name="passageiros" min="1" max="20" placeholder="Ex: 5">
+                </div>
+                
+                <div class="form-group">
+                    <label for="observacoes" class="form-label">
+                        <i class="fa-solid fa-note-sticky"></i>Observações
+                    </label>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="2" 
+                              placeholder="Informações adicionais, requisitos especiais, etc."></textarea>
+                </div>
+            </div>
+            
+            <!-- Ações -->
+            <div class="form-actions">
+                <a href="{{ url_for('agendamentos') }}" class="btn-submit btn-voltar">
+                    <i class="fa-solid fa-arrow-left me-1"></i>Voltar
+                </a>
+                <button type="submit" class="btn-submit btn-agendar">
+                    <i class="fa-solid fa-calendar-check me-1"></i>Agendar Veículo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Set minimum date to tomorrow
+document.addEventListener('DOMContentLoaded', function() {
+    const dataInput = document.getElementById('data_solicitada');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    dataInput.setAttribute('min', minDate);
+    
+    // Add validation listeners
+    document.getElementById('hora_inicio').addEventListener('change', validarHorarios);
+    document.getElementById('hora_fim').addEventListener('change', validarHorarios);
+});
+
+function validarHorarios() {
+    const horaInicio = document.getElementById('hora_inicio').value;
+    const horaFim = document.getElementById('hora_fim').value;
+    
+    if (horaInicio && horaFim) {
+        const [hInicio, mInicio] = horaInicio.split(':').map(Number);
+        const [hFim, mFim] = horaFim.split(':').map(Number);
+        
+        const minInicio = hInicio * 60 + mInicio;
+        const minFim = hFim * 60 + mFim;
+        
+        if (minFim <= minInicio) {
+            document.getElementById('hora_fim').classList.add('is-invalid');
+            alert('A hora de fim deve ser posterior à hora de início!');
+        } else {
+            document.getElementById('hora_fim').classList.remove('is-invalid');
+        }
+    }
+}
+
+// Form submission validation
+document.getElementById('formAgendamento').addEventListener('submit', function(e) {
+    const horaInicio = document.getElementById('hora_inicio').value;
+    const horaFim = document.getElementById('hora_fim').value;
+    
+    if (horaInicio && horaFim) {
+        const [hInicio, mInicio] = horaInicio.split(':').map(Number);
+        const [hFim, mFim] = horaFim.split(':').map(Number);
+        
+        const minInicio = hInicio * 60 + mInicio;
+        const minFim = hFim * 60 + mFim;
+        
+        if (minFim <= minInicio) {
+            e.preventDefault();
+            alert('A hora de fim deve ser posterior à hora de início!');
+        }
+    }
+});
+</script>
+
+{% endblock %}

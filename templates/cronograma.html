@@ -203,6 +203,20 @@
             <h2 class="mb-4">
                 <i class="fa-solid fa-clock text-primary me-2"></i>Cronograma de Viagens em Rota
             </h2>
+            
+            <!-- Aviso de Acesso Público -->
+            <div class="alert alert-success" style="border-left: 4px solid #10b981; margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <i class="fa-solid fa-eye" style="font-size: 1.3rem; color: #10b981;"></i>
+                    <div>
+                        <strong><i class="fa-solid fa-info-circle me-1"></i>Acesso Permitido:</strong> 
+                        Todos os usuários podem visualizar este cronograma em tempo real. 
+                        {% if current_user.role != 'admin' %}
+                        Para agendar um veículo, acesse <a href="{{ url_for('agendar_veiculo') }}" class="alert-link"><i class="fa-solid fa-calendar-plus me-1"></i>Novo Agendamento</a>.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -235,10 +249,28 @@
                         <div class="info-item">
                             <i class="fa-solid fa-user"></i>
                             <div>
-                                <div class="info-label">Motorista:</div>
+                                <div class="info-label">Motorista Autorizado:</div>
                                 <div class="info-value">{{ v.Motorista }}</div>
                             </div>
                         </div>
+                        {% if v.AgendadoPor %}
+                        <div class="info-item mt-2">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <div>
+                                <div class="info-label">Agendado por:</div>
+                                <div class="info-value">{{ v.AgendadoPor }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if v.TelefoneContato %}
+                        <div class="info-item mt-2">
+                            <i class="fa-solid fa-phone"></i>
+                            <div>
+                                <div class="info-label">Contato:</div>
+                                <div class="info-value">{{ v.TelefoneContato }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Data e Hora da Saída -->

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Saída{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    .page-header h1 { font-size: 1.8rem; font-weight: 700; margin: 0; }
+
+    .content-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+    .form-control, .form-select { border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.7rem 1rem; }
+
+    [data-bs-theme="dark"] .content-section { background: #1f2937; }
+    [data-bs-theme="dark"] .form-control { background: #3d4556; border-color: #4a5568; color: #f3f4f6; }
+</style>
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-route me-2"></i>Registrar Saída de Veículo</h1>
+</div>
+
+<div class="content-section">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-{{ 'circle-exclamation' if category == 'danger' else 'circle-check' if category == 'success' else 'triangle-exclamation' if category == 'warning' else 'circle-info' }} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="alert alert-info" role="alert">
+        <i class="fa-solid fa-clock me-2"></i> A data e a hora da saída serão registradas com o horário atual.
+    </div>
+
+    {% if aviso_antecipacao %}
+    <div class="alert alert-warning" role="alert">
+        <h5 class="alert-heading"><i class="fa-solid fa-exclamation-triangle me-2"></i>Confirmar Antecipação</h5>
+        <p>{{ aviso_antecipacao }}</p>
+        <hr>
+        <p class="mb-0">
+            <strong>Agendamento:</strong> #{{ agendamento_selecionado.ID }} — 
+            {{ agendamento_selecionado.DataSolicitada }} {{ agendamento_selecionado.HoraInicio }}-{{ agendamento_selecionado.HoraFim }} — 
+            {{ agendamento_selecionado.PlacaVeiculo }} — {{ agendamento_selecionado.Motorista }}
+        </p>
+    </div>
+    {% endif %}
+
+    <form action="{{ url_for('registrar_saida') }}" method="post">
+        <!-- Agendamento -->
+        <div class="mb-3">
+            <label for="agendamento_id" class="form-label"><i class="fa-solid fa-calendar-check me-2"></i>Selecione o Agendamento</label>
+            <select class="form-select" id="agendamento_id" name="agendamento_id" required {% if agendamento_selecionado %}disabled{% endif %}>
+                <option value="" disabled {% if not agendamento_selecionado %}selected{% endif %}>Escolha um agendamento confirmado</option>
+                {% for a in agendamentos %}
+                <option value="{{ a.ID }}" {% if agendamento_selecionado and agendamento_selecionado.ID == a.ID %}selected{% endif %}>
+                    #{{ a.ID }} — {{ a.DataSolicitada }} {{ a.HoraInicio }}-{{ a.HoraFim }} — {{ a.PlacaVeiculo }} — {{ a.Motorista }} — {{ a.Destinos[:50] }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if agendamento_selecionado %}
+            <input type="hidden" name="agendamento_id" value="{{ agendamento_selecionado.ID }}">
+            <input type="hidden" name="antecipar" value="sim">
+            {% endif %}
+            {% if agendamentos|length == 0 %}
+            <div class="form-text text-danger">Nenhum agendamento confirmado disponível. Confirme um agendamento na página de Agendamentos.</div>
+            {% endif %}
+        </div>
+
+        <!-- KM Inicial -->
+        <div class="mb-3">
+            <label for="km_inicial" class="form-label"><i class="fa-solid fa-gauge me-2"></i>KM Inicial</label>
+            <input type="number" class="form-control" id="km_inicial" name="km_inicial" placeholder="Ex: 85420" value="{{ km_inicial or '' }}" required>
+        </div>
+
+        <!-- Observações (opcional) -->
+        <div class="mb-3">
+            <label for="observacoes" class="form-label"><i class="fa-solid fa-note-sticky me-2"></i>Observações (Opcional)</label>
+            <textarea class="form-control" id="observacoes" name="observacoes" rows="2" placeholder="Adicione observações sobre a saída...">{{ observacoes or '' }}</textarea>
+        </div>
+
+        <div style="display: grid;">
+            {% if aviso_antecipacao %}
+            <button type="submit" class="btn btn-warning btn-lg">
+                <i class="fa-solid fa-check-circle me-2"></i>Sim, Antecipar e Registrar Saída
+            </button>
+            <a href="{{ url_for('registrar_saida') }}" class="btn btn-secondary btn-lg mt-2">
+                <i class="fa-solid fa-times me-2"></i>Cancelar
+            </a>
+            {% else %}
+            <button type="submit" class="btn btn-primary btn-lg" {% if agendamentos|length == 0 %}disabled{% endif %}>
+                <i class="fa-solid fa-check-circle me-2"></i>Registrar Saída
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,254 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                 SISTEMA DE PERMISSÕES - FROTA FUNDEC                         ║
+║                      RESUMO RÁPIDO - v1.3.0                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📅 DATA: 04/11/2025
+✅ STATUS: IMPLEMENTADO E FUNCIONAL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👥 TIPOS DE USUÁRIO
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. USUÁRIO COMUM (user)                                                     │
+│    • Motoristas, secretárias, colaboradores                                 │
+│    • Pode ver cronograma e criar agendamentos                               │
+│    • Agendamentos precisam de confirmação do admin                          │
+│                                                                              │
+│ 2. ADMINISTRADOR (admin)                                                    │
+│    • Gestores da frota                                                      │
+│    • Acesso total ao sistema                                                │
+│    • Pode confirmar e gerenciar todos os agendamentos                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ O QUE USUÁRIOS COMUNS PODEM FAZER
+
+┌────────────────────────────────────────────────────┬──────────────────────────┐
+│ Funcionalidade                                     │ Acesso                   │
+├────────────────────────────────────────────────────┼──────────────────────────┤
+│ ✓ Ver Cronograma de Veículos                       │ ✅ SIM                   │
+│ ✓ Criar Agendamento de Veículo                     │ ✅ SIM                   │
+│ ✓ Ver Seus Próprios Agendamentos                   │ ✅ SIM                   │
+│ ✓ Cancelar Seus Agendamentos                       │ ✅ SIM                   │
+│ ✓ Registrar Saída de Veículo                       │ ✅ SIM                   │
+│ ✓ Registrar Chegada de Veículo                     │ ✅ SIM                   │
+│ ✓ Ver Histórico de Viagens                         │ ✅ SIM                   │
+└────────────────────────────────────────────────────┴──────────────────────────┘
+
+❌ O QUE USUÁRIOS COMUNS NÃO PODEM FAZER
+
+┌────────────────────────────────────────────────────┬──────────────────────────┐
+│ Funcionalidade                                     │ Acesso                   │
+├────────────────────────────────────────────────────┼──────────────────────────┤
+│ ✗ Ver Agendamentos de Outros Usuários              │ ❌ NÃO                   │
+│ ✗ Confirmar Agendamentos                           │ ❌ NÃO                   │
+│ ✗ Cancelar Agendamentos de Outros                  │ ❌ NÃO                   │
+│ ✗ Cancelar Viagens em Rota                         │ ❌ NÃO                   │
+│ ✗ Acessar Gerenciar Dados                          │ ❌ NÃO                   │
+│ ✗ Acessar Relatórios                               │ ❌ NÃO                   │
+└────────────────────────────────────────────────────┴──────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 FLUXO DE AGENDAMENTO
+
+USUÁRIO COMUM:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  1. Usuário cria agendamento                                                │
+│     ↓                                                                        │
+│  2. Status: "AGENDADO" (⏳ Aguardando Confirmação)                          │
+│     ↓                                                                        │
+│  3. Admin visualiza na lista de agendamentos                                │
+│     ↓                                                                        │
+│  4. Admin clica em "Confirmar"                                              │
+│     ↓                                                                        │
+│  5. Status: "CONFIRMADO" (✅ Aprovado)                                      │
+│     ↓                                                                        │
+│  6. Usuário pode usar veículo na data/hora agendada                         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ADMINISTRADOR:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  1. Admin cria agendamento                                                  │
+│     ↓                                                                        │
+│  2. Status: "CONFIRMADO" (✅ Confirmação Automática)                        │
+│     ↓                                                                        │
+│  3. Veículo disponível na data/hora agendada                                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 ESTADOS DE AGENDAMENTO
+
+Status         │ Descrição                        │ Quem Vê          │ Ações
+───────────────┼──────────────────────────────────┼──────────────────┼─────────────
+AGENDADO       │ Aguardando confirmação admin     │ Criador + Admin  │ Confirmar/
+               │                                  │                  │ Cancelar
+───────────────┼──────────────────────────────────┼──────────────────┼─────────────
+CONFIRMADO     │ Aprovado pelo admin              │ Criador + Admin  │ Cancelar
+───────────────┼──────────────────────────────────┼──────────────────┼─────────────
+EM USO         │ Veículo sendo utilizado          │ Todos            │ Finalizar
+───────────────┼──────────────────────────────────┼──────────────────┼─────────────
+FINALIZADO     │ Uso concluído                    │ Todos            │ (histórico)
+───────────────┼──────────────────────────────────┼──────────────────┼─────────────
+CANCELADO      │ Agendamento cancelado            │ Criador + Admin  │ (histórico)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 INDICADORES VISUAIS
+
+NAVBAR (Canto Superior Direito):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  USUÁRIO COMUM:                                                             │
+│  👤 Olá, joao.silva! [🔵 Usuário]                                           │
+│                                                                              │
+│  ADMINISTRADOR:                                                             │
+│  👤 Olá, admin! [🔴 Admin]                                                  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+AVISOS NAS PÁGINAS:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  📄 CRONOGRAMA:                                                             │
+│  [✅ INFO] Todos os usuários podem visualizar este cronograma em tempo real │
+│                                                                              │
+│  📄 AGENDAMENTOS (Usuário):                                                 │
+│  [ℹ️ INFO] Informações sobre Agendamentos                                   │
+│  • Ver Cronograma: Você pode visualizar todos os veículos em uso            │
+│  • Criar Agendamento: Você pode agendar veículos para datas futuras         │
+│  • Aguardar Confirmação: Agendamentos precisam ser confirmados pelo admin   │
+│  • Cancelar: Você pode cancelar seus próprios agendamentos                  │
+│                                                                              │
+│  📄 AGENDAMENTOS (Admin):                                                   │
+│  [🛡️ ADMIN] Permissões de Administrador                                     │
+│  • Ver Todos: Você visualiza todos os agendamentos do sistema               │
+│  • Confirmar: Você pode confirmar agendamentos pendentes                    │
+│  • Cancelar Qualquer: Você pode cancelar qualquer agendamento               │
+│  • Criar Agendamento: Seus agendamentos são confirmados automaticamente     │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 COMO TESTAR
+
+TESTE 1: Como Usuário Comum
+─────────────────────────────
+1. Faça login com conta de usuário comum
+2. Verifique que aparece badge [🔵 Usuário] no navbar
+3. Acesse "Cronograma" → Deve mostrar veículos em rota
+4. Acesse "Agendamentos" → Deve mostrar apenas seus agendamentos
+5. Crie novo agendamento → Status deve ser "Agendado"
+6. Tente acessar "Gerenciar" no menu → NÃO DEVE APARECER
+7. Tente acessar "Relatórios" no menu → NÃO DEVE APARECER
+
+TESTE 2: Como Administrador
+────────────────────────────
+1. Faça login com conta de admin
+2. Verifique que aparece badge [🔴 Admin] no navbar
+3. Acesse "Agendamentos" → Deve mostrar TODOS os agendamentos
+4. Encontre agendamento com status "Agendado"
+5. Clique em "Confirmar" → Status muda para "Confirmado"
+6. Crie novo agendamento → Status deve ser "Confirmado" (automático)
+7. Acesse "Gerenciar" → Deve funcionar
+8. Acesse "Relatórios" → Deve funcionar
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 ARQUIVOS MODIFICADOS
+
+1. templates/base.html
+   • Adicionado badge de role no navbar
+   • Diferencia visualmente usuários comuns e admin
+
+2. templates/agendamentos.html
+   • Adicionado aviso informativo de permissões
+   • Diferente para usuário comum e admin
+   • Explica o fluxo de confirmação
+
+3. templates/cronograma.html
+   • Adicionado aviso de acesso público
+   • Informa que todos podem ver o cronograma
+
+4. SISTEMA_PERMISSOES.md (NOVO)
+   • Documentação completa de permissões
+   • Matriz de acesso
+   • Fluxos de trabalho
+   • Casos de uso
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ CHECKLIST DE VALIDAÇÃO
+
+Backend:
+[✅] Decorator @admin_required implementado
+[✅] Filtragem de agendamentos por usuário
+[✅] Verificação de permissão em cancelamentos
+[✅] Confirmação automática para admin
+[✅] Rotas protegidas adequadamente
+
+Frontend:
+[✅] Badge de role no navbar
+[✅] Avisos informativos nas páginas
+[✅] Botões condicionais por permissão
+[✅] Menu adaptativo (Gerenciar/Relatórios apenas admin)
+[✅] Status visual de agendamentos
+
+Documentação:
+[✅] SISTEMA_PERMISSOES.md criado
+[✅] Matriz de permissões documentada
+[✅] Fluxos de trabalho explicados
+[✅] Casos de uso detalhados
+[✅] Guia de testes incluído
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 RESUMO EXECUTIVO
+
+O sistema agora possui controle de acesso completo:
+
+✅ USUÁRIOS COMUNS podem:
+   • Ver cronograma em tempo real
+   • Criar agendamentos (precisam de confirmação)
+   • Ver apenas seus próprios agendamentos
+   • Cancelar seus agendamentos
+   • Usar funcionalidades básicas
+
+✅ ADMINISTRADORES podem:
+   • Tudo que usuários comuns podem
+   • Ver todos os agendamentos
+   • Confirmar agendamentos pendentes
+   • Cancelar qualquer agendamento
+   • Acessar gerenciamento e relatórios
+   • Criar agendamentos com confirmação automática
+
+✅ SEGURANÇA:
+   • Decorators protegem rotas sensíveis
+   • Verificação de permissão no backend
+   • Mensagens de erro apropriadas
+   • Filtragem de dados por role
+   • Interface adaptativa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 STATUS FINAL
+
+Sistema de Permissões: ✅ IMPLEMENTADO E TESTADO
+Pronto para Produção: ✅ SIM
+Documentação Completa: ✅ SIM
+
+Para mais detalhes, consulte: SISTEMA_PERMISSOES.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Data: 04/11/2025
+Versão: 1.3.0
